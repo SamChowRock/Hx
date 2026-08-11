@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, RequestMethod } from '@nestjs/common';
 import { LoggerModule } from 'nestjs-pino';
 
 import { environmentProvider } from '../../../libs/platform/src/config';
@@ -8,6 +8,7 @@ import { HealthController } from './health/health.controller';
 @Module({
   imports: [
     LoggerModule.forRoot({
+      forRoutes: [{ path: '{*path}', method: RequestMethod.ALL }],
       pinoHttp: {
         redact: {
           paths: [

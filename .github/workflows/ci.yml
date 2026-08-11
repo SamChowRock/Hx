@@ -12,12 +12,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
         with:
-          version: 10.11.0
+          version: 11.21.0
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -27,3 +27,14 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - run: docker compose config --quiet
+      - run: docker build --tag nestjs-production-scaffold:ci .
+      - name: Smoke test API and Worker containers
+        run: |
+          docker run --detach --name scaffold-api --publish 3000:3000 nestjs-production-scaffold:ci
+          docker run --detach --name scaffold-worker nestjs-production-scaffold:ci node dist/apps/worker/src/main.js
+          curl --retry 10 --retry-connrefused --retry-delay 1 --fail http://127.0.0.1:3000/api/health/ready
+          test "$(docker inspect --format '{{.State.Running}}' scaffold-worker)" = "true"
+      - name: Clean up smoke-test containers
+        if: always()
+        run: docker rm --force scaffold-api scaffold-worker || true
