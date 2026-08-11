@@ -1,4 +1,74 @@
 services:
+  api:
+    image: nestjs-production-scaffold:local
+    build:
+      context: .
+      target: runtime
+    init: true
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      LOG_LEVEL: info
+      API_CORS_ORIGINS: http://localhost:5173
+      SERVICE_NAME: nestjs-production-scaffold-api
+      TRUST_PROXY: 'false'
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      redis-queue:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health/ready').then((response) => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
+  worker:
+    image: nestjs-production-scaffold:local
+    build:
+      context: .
+      target: runtime
+    init: true
+    command: ['node', 'dist/apps/worker/src/main.js']
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      API_CORS_ORIGINS: ''
+      SERVICE_NAME: nestjs-production-scaffold-worker
+      TRUST_PROXY: 'false'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis-cache:
+        condition: service_healthy
+      redis-queue:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
   postgres:
     image: postgres:17-alpine
     environment:
@@ -20,6 +90,11 @@ services:
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
       - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   redis-queue:
     image: redis:7-alpine
@@ -28,6 +103,11 @@ services:
       - '6380:6379'
     volumes:
       - queue-redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   minio:
     image: minio/minio:latest
