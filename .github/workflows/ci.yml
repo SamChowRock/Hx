@@ -31,10 +31,28 @@ jobs:
       - run: docker build --tag nestjs-production-scaffold:ci .
       - name: Smoke test API and Worker containers
         run: |
-          docker run --detach --name scaffold-api --publish 3000:3000 nestjs-production-scaffold:ci
+          docker run --detach --name scaffold-api nestjs-production-scaffold:ci
           docker run --detach --name scaffold-worker nestjs-production-scaffold:ci node dist/apps/worker/src/main.js
-          curl --retry 10 --retry-connrefused --retry-delay 1 --fail http://127.0.0.1:3000/api/health/ready
+          for attempt in $(seq 1 15); do
+            if test "$(docker inspect --format '{{.State.Running}}' scaffold-api)" != "true"; then
+              echo 'API container exited before it became ready.'
+              exit 1
+            fi
+
+            if docker exec scaffold-api node -e "fetch('http://127.0.0.1:3000/api/health/ready').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"; then
+              break
+            fi
+
+            sleep 1
+          done
+
+          docker exec scaffold-api node -e "fetch('http://127.0.0.1:3000/api/health/ready').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
           test "$(docker inspect --format '{{.State.Running}}' scaffold-worker)" = "true"
+      - name: Print smoke-test container logs
+        if: failure()
+        run: |
+          docker logs scaffold-api || true
+          docker logs scaffold-worker || true
       - name: Clean up smoke-test containers
         if: always()
         run: docker rm --force scaffold-api scaffold-worker || true
