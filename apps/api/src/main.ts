@@ -7,6 +7,7 @@ import { LoggerErrorInterceptor, Logger as PinoLogger } from 'nestjs-pino';
 import { corsOrigins, loadEnvironment } from '../../../libs/platform/src/config';
 
 import { AppModule } from './app.module';
+import { configureApplication } from './configure-application';
 
 async function bootstrap(): Promise<void> {
   const environment = loadEnvironment();
@@ -14,8 +15,8 @@ async function bootstrap(): Promise<void> {
   const logger = app.get(PinoLogger);
 
   app.useLogger(logger);
+  configureApplication(app, environment);
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
-  app.setGlobalPrefix('api');
   app.enableShutdownHooks();
 
   if (environment.TRUST_PROXY) {
@@ -28,15 +29,17 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
-  const document = SwaggerModule.createDocument(
-    app,
-    new DocumentBuilder()
-      .setTitle('NestJS Production Scaffold')
-      .setDescription('HTTP contract for the modular-monolith API.')
-      .setVersion('0.1.0')
-      .build(),
-  );
-  SwaggerModule.setup('docs', app, document, { useGlobalPrefix: false });
+  if (environment.NODE_ENV === 'development' || environment.NODE_ENV === 'test') {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder()
+        .setTitle('NestJS Production Scaffold')
+        .setDescription('HTTP contract for the modular-monolith API.')
+        .setVersion('0.1.0')
+        .build(),
+    );
+    SwaggerModule.setup('docs', app, document, { useGlobalPrefix: false });
+  }
 
   await app.listen(environment.PORT, '0.0.0.0');
   logger.log({ port: environment.PORT, environment: environment.NODE_ENV }, 'API started');

@@ -11,6 +11,11 @@ FROM dependencies AS build
 COPY . .
 RUN pnpm build && pnpm prune --prod --ignore-scripts
 
+FROM dependencies AS migration
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
+CMD ["pnpm", "prisma:migrate:deploy"]
+
 FROM base AS runtime
 ENV NODE_ENV=production
 COPY --from=build --chown=app:app /app/node_modules ./node_modules

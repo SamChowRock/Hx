@@ -1,0 +1,258 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../libs/platform/src/database/generated"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+  PENDING_DELETION
+}
+
+enum ContactType {
+  EMAIL
+  PHONE
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum RegistrationIntentStatus {
+  PENDING
+  VERIFIED
+  CONSUMED
+  EXPIRED
+}
+
+enum VerificationPurpose {
+  REGISTER_EMAIL
+  RESET_PASSWORD
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  DEAD
+}
+
+model User {
+  id              String       @id @default(uuid()) @db.Uuid
+  displayName     String       @map("display_name")
+  status          UserStatus   @default(ACTIVE)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  contacts        UserContact[]
+  credential      PasswordCredential?
+  sessions        Session[]
+  memberships     Membership[]
+  externalIdentities ExternalIdentity[]
+  auditEvents     AuditEvent[] @relation("AuditActor")
+
+  @@map("users")
+}
+
+model ExternalIdentity {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  providerKey     String   @map("provider_key")
+  issuer          String
+  providerSubject String   @map("provider_subject")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastLoginAt     DateTime @default(now()) @map("last_login_at") @db.Timestamptz(6)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issuer, providerSubject])
+  @@index([userId])
+  @@map("external_identities")
+}
+
+model OidcTransaction {
+  id                    String    @id @default(uuid()) @db.Uuid
+  providerKey           String    @map("provider_key")
+  stateHash             String    @unique @map("state_hash")
+  browserBindingHash    String    @map("browser_binding_hash")
+  codeVerifierCiphertext String   @map("code_verifier_ciphertext")
+  nonceCiphertext       String    @map("nonce_ciphertext")
+  returnTo              String    @map("return_to")
+  expiresAt             DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt            DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([expiresAt])
+  @@map("oidc_transactions")
+}
+
+model UserContact {
+  id              String      @id @default(uuid()) @db.Uuid
+  userId          String      @map("user_id") @db.Uuid
+  type            ContactType
+  normalizedValue String      @map("normalized_value")
+  verifiedAt      DateTime    @map("verified_at") @db.Timestamptz(6)
+  isPrimary       Boolean     @default(true) @map("is_primary")
+  retiredAt       DateTime?   @map("retired_at") @db.Timestamptz(6)
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([type, normalizedValue])
+  @@index([userId, retiredAt])
+  @@map("user_contacts")
+}
+
+model PasswordCredential {
+  userId          String    @id @map("user_id") @db.Uuid
+  passwordHash    String    @map("password_hash")
+  passwordChangedAt DateTime @default(now()) @map("password_changed_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_credentials")
+}
+
+model Organization {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  memberships Membership[]
+  auditEvents AuditEvent[]
+  projects    Project[]
+
+  @@map("organizations")
+}
+
+model Project {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @map("organization_id") @db.Uuid
+  name           String
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("projects")
+}
+
+model Membership {
+  id             String           @id @default(uuid()) @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  organizationId String           @map("organization_id") @db.Uuid
+  role           OrganizationRole @default(OWNER)
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId, role])
+  @@map("memberships")
+}
+
+model Session {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  secretHash        String    @unique @map("secret_hash")
+  csrfSecretHash    String    @map("csrf_secret_hash")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  absoluteExpiresAt DateTime  @map("absolute_expires_at") @db.Timestamptz(6)
+  idleExpiresAt     DateTime  @map("idle_expires_at") @db.Timestamptz(6)
+  lastSeenAt        DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  authenticatedAt   DateTime  @default(now()) @map("authenticated_at") @db.Timestamptz(6)
+  userAgentSummary  String?   @map("user_agent_summary")
+  ipPrefixHash      String?   @map("ip_prefix_hash")
+  revokedAt         DateTime? @map("revoked_at") @db.Timestamptz(6)
+  revokeReason      String?   @map("revoke_reason")
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt, absoluteExpiresAt])
+  @@map("sessions")
+}
+
+model RegistrationIntent {
+  id              String                   @id @default(uuid()) @db.Uuid
+  normalizedEmail String                   @unique @map("normalized_email")
+  status          RegistrationIntentStatus @default(PENDING)
+  tokenHash       String                   @unique @map("token_hash")
+  expiresAt       DateTime                 @map("expires_at") @db.Timestamptz(6)
+  verifiedAt      DateTime?                @map("verified_at") @db.Timestamptz(6)
+  consumedAt      DateTime?                @map("consumed_at") @db.Timestamptz(6)
+  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([status, expiresAt])
+  @@map("registration_intents")
+}
+
+model PhoneRegistrationIntent {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  normalizedPhone     String                   @unique @map("normalized_phone")
+  status              RegistrationIntentStatus @default(PENDING)
+  challengeIdHash     String                   @unique @map("challenge_id_hash")
+  codeHash            String                   @map("code_hash")
+  completionTokenHash String?                  @unique @map("completion_token_hash")
+  failedAttempts      Int                      @default(0) @map("failed_attempts")
+  sentCount           Int                      @default(1) @map("sent_count")
+  sendWindowStartedAt DateTime                 @default(now()) @map("send_window_started_at") @db.Timestamptz(6)
+  lastSentAt          DateTime                 @default(now()) @map("last_sent_at") @db.Timestamptz(6)
+  expiresAt           DateTime                 @map("expires_at") @db.Timestamptz(6)
+  verifiedAt          DateTime?                @map("verified_at") @db.Timestamptz(6)
+  consumedAt          DateTime?                @map("consumed_at") @db.Timestamptz(6)
+  createdAt           DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([status, expiresAt])
+  @@map("phone_registration_intents")
+}
+
+model PasswordResetIntent {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @unique @map("user_id") @db.Uuid
+  tokenHash       String    @unique @map("token_hash")
+  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt      DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([expiresAt])
+  @@map("password_reset_intents")
+}
+
+model AuditEvent {
+  id             String        @id @default(uuid()) @db.Uuid
+  actorUserId    String?       @map("actor_user_id") @db.Uuid
+  organizationId String?       @map("organization_id") @db.Uuid
+  action         String
+  targetType     String        @map("target_type")
+  targetId       String?       @map("target_id")
+  requestId      String?       @map("request_id")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor          User?         @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@map("audit_events")
+}
+
+model OutboxEvent {
+  id          String       @id @default(uuid()) @db.Uuid
+  type        String
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0)
+  availableAt DateTime     @default(now()) @map("available_at") @db.Timestamptz(6)
+  lockedAt    DateTime?    @map("locked_at") @db.Timestamptz(6)
+  deliveredAt DateTime?    @map("delivered_at") @db.Timestamptz(6)
+  lastError   String?      @map("last_error")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([status, availableAt])
+  @@map("outbox_events")
+}

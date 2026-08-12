@@ -1,4 +1,16 @@
 services:
+  migration:
+    image: nestjs-production-scaffold-migration:local
+    build:
+      context: .
+      target: migration
+    environment:
+      DATABASE_URL: postgresql://scaffold:scaffold@postgres:5432/scaffold?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
   api:
     image: nestjs-production-scaffold:local
     build:
@@ -6,15 +18,24 @@ services:
       target: runtime
     init: true
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
+      DATABASE_URL: postgresql://scaffold:scaffold@postgres:5432/scaffold?schema=public
       PORT: 3000
       LOG_LEVEL: info
       API_CORS_ORIGINS: http://localhost:5173
       SERVICE_NAME: nestjs-production-scaffold-api
       TRUST_PROXY: 'false'
+      AUTH_SECRET: development-only-auth-secret-change-before-production
+      SMTP_URL: smtp://mailpit:1025
+      EMAIL_FROM: no-reply@example.test
+      SMS_PROVIDER: disabled
+      WEB_APP_ORIGIN: http://localhost:5173
+      API_PUBLIC_ORIGIN: http://localhost:3000
     ports:
       - '3000:3000'
     depends_on:
+      migration:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis-cache:
@@ -49,18 +70,29 @@ services:
     init: true
     command: ['node', 'dist/apps/worker/src/main.js']
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
+      DATABASE_URL: postgresql://scaffold:scaffold@postgres:5432/scaffold?schema=public
       LOG_LEVEL: info
       API_CORS_ORIGINS: ''
       SERVICE_NAME: nestjs-production-scaffold-worker
       TRUST_PROXY: 'false'
+      AUTH_SECRET: development-only-auth-secret-change-before-production
+      SMTP_URL: smtp://mailpit:1025
+      EMAIL_FROM: no-reply@example.test
+      SMS_PROVIDER: disabled
+      WEB_APP_ORIGIN: http://localhost:5173
+      API_PUBLIC_ORIGIN: http://localhost:3000
     depends_on:
+      migration:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
       redis-cache:
         condition: service_healthy
       redis-queue:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     read_only: true
     tmpfs:
       - /tmp

@@ -26,33 +26,26 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Run authentication and authorization E2E tests
+        run: |
+          docker compose up --detach --wait postgres
+          pnpm prisma:migrate:deploy
+          pnpm test:e2e
+      - name: Clean up E2E database
+        if: always()
+        run: docker compose down --volumes || true
       - run: pnpm build
       - run: docker compose config --quiet
-      - run: docker build --tag nestjs-production-scaffold:ci .
+      - run: docker compose build migration api worker
       - name: Smoke test API and Worker containers
         run: |
-          docker run --detach --name scaffold-api nestjs-production-scaffold:ci
-          docker run --detach --name scaffold-worker nestjs-production-scaffold:ci node dist/apps/worker/src/main.js
-          for attempt in $(seq 1 15); do
-            if test "$(docker inspect --format '{{.State.Running}}' scaffold-api)" != "true"; then
-              echo 'API container exited before it became ready.'
-              exit 1
-            fi
-
-            if docker exec scaffold-api node -e "fetch('http://127.0.0.1:3000/api/health/ready').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"; then
-              break
-            fi
-
-            sleep 1
-          done
-
-          docker exec scaffold-api node -e "fetch('http://127.0.0.1:3000/api/health/ready').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
-          test "$(docker inspect --format '{{.State.Running}}' scaffold-worker)" = "true"
+          docker compose up --detach --wait api worker
+          curl --fail --silent http://127.0.0.1:3000/api/health/ready
+          test "$(docker compose ps --status running --services worker)" = "worker"
       - name: Print smoke-test container logs
         if: failure()
         run: |
-          docker logs scaffold-api || true
-          docker logs scaffold-worker || true
+          docker compose logs api worker migration || true
       - name: Clean up smoke-test containers
         if: always()
-        run: docker rm --force scaffold-api scaffold-worker || true
+        run: docker compose down --volumes || true
