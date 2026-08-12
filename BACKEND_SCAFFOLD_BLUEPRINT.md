@@ -95,7 +95,7 @@ Verified local credentials and OIDC/OAuth providers through a NestJS BFF with Po
 Managed container, PostgreSQL, Redis, and object storage in production
 ```
 
-The exact identity provider and cloud may vary by region, cost, and product requirements; choose one before Milestone 2 and capture the choice in an Architecture Decision Record (ADR). Every ADR should record context, decision, alternatives, consequences, and the condition that would cause reconsideration.
+The exact identity provider and cloud may vary by region, cost, and product requirements; choose one before Milestone 1 and capture the choice in an Architecture Decision Record (ADR). Every ADR should record context, decision, alternatives, consequences, and the condition that would cause reconsideration.
 
 ## Codebase shape
 
@@ -344,17 +344,17 @@ Use deterministic clocks, ID generators, and data factories in tests. Add proper
 
 Initialize the default implementation baseline, strict TypeScript, ESLint/Prettier, commit hooks, Docker Compose, configuration validation, a `/health` endpoint, Pino logs, OpenAPI, and CI. Pin Node and pnpm versions in the repository, commit the lockfile, and automate controlled dependency updates. Write the reference-product constraints, first ADRs, API conventions, and threat model before coding. Deliver non-root API and Worker containers that start locally with PostgreSQL, cache Redis, and queue Redis.
 
-### Milestone 1 — One vertical product slice
-
-Build one real resource end-to-end: migration, repository, use case, controller, validation, tests, OpenAPI, pagination, and error contract. Resist creating generic abstractions until this slice exposes a repeated need.
-
-### Milestone 2 — Identity and tenancy
+### Milestone 1 — Identity and tenancy
 
 Add the OIDC BFF flow, verified email/phone registration and password sign-in, server-side sessions, users/organizations/memberships, RBAC/policies enforced by application use cases, tenant-scoped repositories/jobs, audit logging, and authorization E2E tests across HTTP/Worker/CLI. Implement `docs/USER_AUTH_MODULE.md` and its account-linking, recovery, and abuse controls before enabling public registration. This is the point at which the scaffold becomes safe for a multi-user product.
 
+### Milestone 2 — One vertical product slice
+
+Build one real, tenant-scoped resource end-to-end: migration, repository, use case, controller, validation, tests, OpenAPI, pagination, error contract, authorization, and audit logging. Include one deliberately small asynchronous use case—such as sending an email or recording an audit event after the resource is created—to validate the API-to-Worker boundary without prematurely generalizing it. Resist creating generic abstractions until this slice exposes a repeated need.
+
 ### Milestone 3 — Async and integrations
 
-Add the dedicated BullMQ Redis and Worker processes, retries, idempotency, transactional outbox, cache policy, email, the quarantine/scan file pipeline, and signed inbound/outbound webhooks. Surface queue failures in logs and dashboards, and verify duplicate delivery/replay behavior.
+Turn the proven asynchronous path into production-ready infrastructure: dedicated BullMQ Redis and Worker processes, retries, idempotency, transactional outbox, cache policy, email, the quarantine/scan file pipeline, and signed inbound/outbound webhooks. Surface queue failures in logs and dashboards, and verify duplicate delivery/replay behavior.
 
 ### Milestone 4 — Production readiness
 
@@ -491,7 +491,7 @@ Docker Compose + GitHub Actions + Terraform
 生产使用托管容器、PostgreSQL、Redis 和对象存储
 ```
 
-具体身份提供商和云平台会因区域、成本和产品要求而变化；在 Milestone 2 前选定，并通过 Architecture Decision Record（ADR）记录。每份 ADR 都应记录背景、决策、替代方案、后果和重新评估条件。
+具体身份提供商和云平台会因区域、成本和产品要求而变化；在 Milestone 1 前选定，并通过 Architecture Decision Record（ADR）记录。每份 ADR 都应记录背景、决策、替代方案、后果和重新评估条件。
 
 ## 代码库形态
 
@@ -740,17 +740,17 @@ Expand/Contract 变更跨越多个版本：扩展 Schema；部署兼容新旧 Sh
 
 初始化默认实现基线、严格 TypeScript、ESLint/Prettier、Commit Hook、Docker Compose、配置校验、`/health` Endpoint、Pino 日志、OpenAPI 和 CI。在仓库中固定 Node 与 pnpm 版本、提交 Lockfile，并自动化受控依赖更新。在编码前编写参考产品约束、首批 ADR、API 约定和威胁模型。交付使用非 root 用户的 API 与 Worker 容器，并能在本地与 PostgreSQL、缓存 Redis 和队列 Redis 一起启动。
 
-### Milestone 1 — 一个垂直产品切片
-
-端到端实现一个真实资源：Migration、Repository、Use Case、Controller、Validation、Test、OpenAPI、Pagination 和 Error Contract。在该切片揭示重复需求之前，不要创建通用抽象。
-
-### Milestone 2 — 身份与租户
+### Milestone 1 — 身份与租户
 
 添加 OIDC BFF Flow、已验证邮箱/手机注册与密码登录、服务端 Session、User/Organization/Membership、由应用 Use Case 强制执行的 RBAC/Policy、租户范围 Repository/Job、Audit Log，以及跨 HTTP/Worker/CLI 的授权 E2E Test。在开放公共注册前实现 `docs/USER_AUTH_MODULE.md` 及其账号绑定、恢复和滥用控制。到这一阶段，脚手架才足以安全支持多用户产品。
 
+### Milestone 2 — 一个垂直产品切片
+
+端到端实现一个真实且具备租户范围的资源：Migration、Repository、Use Case、Controller、Validation、Test、OpenAPI、Pagination、Error Contract、Authorization 和 Audit Log。加入一个刻意保持很小的异步用例，例如在创建资源后发送邮件或写入审计事件，以验证 API 到 Worker 的边界，但不要过早将它泛化。在该切片揭示重复需求之前，不要创建通用抽象。
+
 ### Milestone 3 — 异步与集成
 
-添加专用 BullMQ Redis 和 Worker Process、Retry、Idempotency、Transactional Outbox、Cache Policy、邮件、隔离/扫描文件管道，以及带签名的入站/出站 Webhook。在日志和 Dashboard 中暴露 Queue Failure，并验证重复交付/重放行为。
+将已验证的异步路径完善为生产就绪的基础设施：专用 BullMQ Redis 和 Worker Process、Retry、Idempotency、Transactional Outbox、Cache Policy、邮件、隔离/扫描文件管道，以及带签名的入站/出站 Webhook。在日志和 Dashboard 中暴露 Queue Failure，并验证重复交付/重放行为。
 
 ### Milestone 4 — 生产就绪
 
