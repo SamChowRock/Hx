@@ -4,7 +4,10 @@ module.exports = {
   rootDir: '.',
   testRegex: '.*[.]e2e-spec[.]ts$',
   transform: {
-    '^.+[.](t|j)s$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
+    '^.+[.](t|j)s$': ['ts-jest', { tsconfig: 'tsconfig.test.json' }],
+  },
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   testEnvironment: 'node',
 };
