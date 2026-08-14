@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "toolchain-and-commands",
+      "description": "包管理、Node 版本或项目命令可能改变安装、开发和验证步骤。",
+      "sources": [
+        "package.json",
+        "pnpm-lock.yaml",
+        "pnpm-workspace.yaml",
+        ".nvmrc",
+        "tsconfig*.json",
+        "eslint.config.*"
+      ],
+      "reviewPaths": [
+        "tutorials/nestjs-backend/generated/commands.md",
+        "tutorials/nestjs-backend/03-local-development.md",
+        "tutorials/nestjs-backend/21-command-reference.md",
+        "tutorials/nestjs-backend/maintenance/review-acknowledgements.md"
+      ]
+    },
+    {
+      "id": "runtime-configuration",
+      "description": "环境变量或运行时校验变化可能改变启动条件、安全边界和 Provider 配置。",
+      "sources": [".env.example", "libs/platform/src/config/**"],
+      "reviewPaths": [
+        "tutorials/nestjs-backend/generated/environment.md",
+        "tutorials/nestjs-backend/03-local-development.md",
+        "tutorials/nestjs-backend/06-bootstrap-and-config.md",
+        "tutorials/nestjs-backend/09-authentication.md",
+        "tutorials/nestjs-backend/maintenance/review-acknowledgements.md"
+      ]
+    },
+    {
+      "id": "docker-and-compose",
+      "description": "镜像构建、服务、网络、健康检查或持久化变化会影响 Docker 教程和实验。",
+      "sources": ["Dockerfile", "docker-compose.yml", ".dockerignore"],
+      "reviewPaths": [
+        "tutorials/nestjs-backend/generated/compose-services.md",
+        "tutorials/nestjs-backend/03-local-development.md",
+        "tutorials/nestjs-backend/17-build-deploy-operations.md",
+        "tutorials/nestjs-backend/infrastructure/01-docker-mental-model.md",
+        "tutorials/nestjs-backend/infrastructure/02-dockerfile-build.md",
+        "tutorials/nestjs-backend/infrastructure/03-compose-network-storage.md",
+        "tutorials/nestjs-backend/infrastructure/04-docker-runtime-debug-security.md",
+        "tutorials/nestjs-backend/infrastructure/11-integrated-labs.md",
+        "tutorials/nestjs-backend/maintenance/review-acknowledgements.md"
+      ]
+    },
+    {
+      "id": "database-schema",
+      "description": "Prisma Model、约束、索引或 Migration 变化需要数据库语义和迁移风险审查。",
+      "sources": [
+        "prisma/schema.prisma",
+        "prisma/migrations/**",
+        "prisma.config.ts",
+        "libs/platform/src/database/**"
+      ],
+      "reviewPaths": [
+        "tutorials/nestjs-backend/08-prisma-and-postgresql.md",
+        "tutorials/nestjs-backend/22-project-reference.md",
+        "tutorials/nestjs-backend/infrastructure/06-postgresql-schema-and-sql.md",
+        "tutorials/nestjs-backend/infrastructure/07-postgresql-indexes-and-query-plans.md",
+        "tutorials/nestjs-backend/infrastructure/08-postgresql-mvcc-transactions-locks.md",
+        "tutorials/nestjs-backend/infrastructure/10-prisma-and-postgresql-boundary.md",
+        "tutorials/nestjs-backend/workshop/11-01-requirements-and-schema.md",
+        "tutorials/nestjs-backend/expert-track/02-postgresql-query-design.md",
+        "tutorials/nestjs-backend/expert-track/10-deployment-and-migrations.md",
+        "tutorials/nestjs-backend/maintenance/review-acknowledgements.md"
+      ]
+    },
+    {
+      "id": "api-bootstrap-and-contract",
+      "description": "应用启动、全局中间件、Controller 或路由变化可能改变请求生命周期和 API 参考。",
+      "sources": [
+        "apps/api/src/main.ts",
+        "apps/api/src/configure-application.ts",
+        "apps/api/src/app.module.ts",
+        "apps/api/src/health/**",
+        "apps/api/src/http/**",
+        "apps/api/src/**/*controller.ts"
+      ],
+      "reviewPaths": [
+        "tutorials/nestjs-backend/generated/api-routes.md",
+        "tutorials/nestjs-backend/06-bootstrap-and-config.md",
+        "tutorials/nestjs-backend/07-request-lifecycle.md",
+        "tutorials/nestjs-backend/14-validation-errors-api-contracts.md",
+        "tutorials/nestjs-backend/16-observability-and-debugging.md",
+        "tutorials/nestjs-backend/22-project-reference.md",
+        "tutorials/nestjs-backend/maintenance/review-acknowledgements.md"
+      ]
+    },
+    {
+      "id": "nestjs-module-structure",
+      "description": "Module 或 Service 结构变化可能改变依赖方向、职责边界和源码阅读路径。",
+      "sources": [
+        "apps/api/src/**/*.module.ts",
+        "apps/api/src/**/*.service.ts",
+        "libs/platform/src/**/*.module.ts",
+        "libs/platform/src/**/*.service.ts"
+      ],
+      "reviewPaths": [
+        "tutorials/nestjs-backend/04-nestjs-mental-model.md",
+        "tutorials/nestjs-backend/05-project-structure.md",
+        "tutorials/nestjs-backend/07-request-lifecycle.md",
+        "tutorials/nestjs-backend/22-project-reference.md",
+        "tutorials/nestjs-backend/generated/api-routes.md",
+        "tutorials/nestjs-backend/maintenance/review-acknowledgements.md"
+      ]
+    },
+    {
+      "id": "identity-and-authentication",
+      "description": "注册、登录、OIDC、微信、Session 或认证边界变化需要认证与安全章节审查。",
+      "sources": [
+        "apps/api/src/identity/**",
+        "apps/api/src/http/auth-http.*",
+        "docs/adr/*auth*",
+        "docs/adr/*oidc*",
+        "docs/adr/*wechat*"
+      ],
+      "reviewPaths": [
+        "tutorials/nestjs-backend/09-authentication.md",
+        "tutorials/nestjs-backend/authentication/**",
+        "tutorials/nestjs-backend/19-security-and-antipatterns.md",
+        "tutorials/nestjs-backend/22-project-reference.md",
+        "tutorials/nestjs-backend/expert-track/05-auth-security-and-multitenancy.md",
+        "tutorials/nestjs-backend/maintenance/review-acknowledgements.md"
+      ]
+    },
+    {
+      "id": "authorization-and-tenancy",
+      "description": "授权、Organization、Membership 或租户资源变化需要权限边界和业务实战审查。",
+      "sources": [
+        "apps/api/src/authorization/**",
+        "apps/api/src/organizations/**",
+        "apps/api/src/projects/**"
+      ],
+      "reviewPaths": [
+        "tutorials/nestjs-backend/10-authorization-and-multitenancy.md",
+        "tutorials/nestjs-backend/22-project-reference.md",
+        "tutorials/nestjs-backend/workshop/**",
+        "tutorials/nestjs-backend/expert-track/05-auth-security-and-multitenancy.md",
+        "tutorials/nestjs-backend/maintenance/review-acknowledgements.md"
+      ]
+    },
+    {
+      "id": "worker-and-outbox",
+      "description": "Worker 或异步投递逻辑变化需要 Outbox、幂等和故障恢复章节审查。",
+      "sources": ["apps/worker/**"],
+      "reviewPaths": [
+        "tutorials/nestjs-backend/13-outbox-workers-and-cache.md",
+        "tutorials/nestjs-backend/16-observability-and-debugging.md",
+        "tutorials/nestjs-backend/expert-track/06-outbox-worker-reliability.md",
+        "tutorials/nestjs-backend/maintenance/review-acknowledgements.md"
+      ]
+    },
+    {
+      "id": "architecture-decisions",
+      "description": "ADR、威胁模型或 API 约定变化可能让教程继续解释已经废弃的设计理由。",
+      "sources": [
+        "docs/adr/**",
+        "docs/API_CONVENTIONS.md",
+        "docs/REFERENCE_PRODUCT.md",
+        "docs/THREAT_MODEL.md"
+      ],
+      "reviewPaths": [
+        "tutorials/nestjs-backend/01-overview-and-stack.md",
+        "tutorials/nestjs-backend/mindset/**",
+        "tutorials/nestjs-backend/14-validation-errors-api-contracts.md",
+        "tutorials/nestjs-backend/18-development-workflow-and-design.md",
+        "tutorials/nestjs-backend/19-security-and-antipatterns.md",
+        "tutorials/nestjs-backend/expert-track/11-architecture-evolution.md",
+        "tutorials/nestjs-backend/maintenance/review-acknowledgements.md"
+      ]
+    }
+  ]
+}

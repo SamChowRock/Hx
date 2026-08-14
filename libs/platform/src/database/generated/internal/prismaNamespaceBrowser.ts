@@ -17,8 +17,8 @@
 
 import * as runtime from "@prisma/client/runtime/index-browser"
 
-export type * from '../models'
-export type * from './prismaNamespace'
+export type * from '../models.js'
+export type * from './prismaNamespace.js'
 
 export const Decimal = runtime.Decimal
 
@@ -54,6 +54,7 @@ export const ModelName = {
   User: 'User',
   ExternalIdentity: 'ExternalIdentity',
   OidcTransaction: 'OidcTransaction',
+  OAuthProfileTransaction: 'OAuthProfileTransaction',
   UserContact: 'UserContact',
   PasswordCredential: 'PasswordCredential',
   Organization: 'Organization',
@@ -121,6 +122,20 @@ export const OidcTransactionScalarFieldEnum = {
 } as const
 
 export type OidcTransactionScalarFieldEnum = (typeof OidcTransactionScalarFieldEnum)[keyof typeof OidcTransactionScalarFieldEnum]
+
+
+export const OAuthProfileTransactionScalarFieldEnum = {
+  id: 'id',
+  providerKey: 'providerKey',
+  stateHash: 'stateHash',
+  browserBindingHash: 'browserBindingHash',
+  returnTo: 'returnTo',
+  expiresAt: 'expiresAt',
+  consumedAt: 'consumedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type OAuthProfileTransactionScalarFieldEnum = (typeof OAuthProfileTransactionScalarFieldEnum)[keyof typeof OAuthProfileTransactionScalarFieldEnum]
 
 
 export const UserContactScalarFieldEnum = {

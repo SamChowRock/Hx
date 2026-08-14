@@ -142,6 +142,8 @@ The email callback suppresses query strings in access logs, sets `Referrer-Polic
 | `POST /external/:provider/link/start`     | session + CSRF + recent authentication   | Creates a transaction bound to the current user and returns an authorization URL.                                                                                  |
 | `DELETE /external-identities/:identityId` | session + CSRF + recent authentication   | Unlinks an identity only when another viable authentication method remains.                                                                                        |
 
+The first concrete OAuth profile adapter is WeChat Open Platform website QR login. Configure all of `WECHAT_PROVIDER_KEY`, `WECHAT_APP_ID`, and `WECHAT_APP_SECRET`; partial configuration fails during application startup. The adapter uses `snsapi_login`, performs the code exchange and profile request only from the API, and discards provider tokens. It keys an identity by the website AppID scope plus OpenID. UnionID is checked for consistency when present, but cross-application unification requires the additional model and conflict policy in ADR 0004. Official Account, Mini Program, and native-app login are separate future adapters.
+
 ### Sessions and contacts
 
 | Method and route              | Request                                           | Result                                                                          |
@@ -179,6 +181,8 @@ This ordering prevents account pre-hijacking: a person clicking an unsolicited e
 4. If the identity is new and a trusted provider email corresponds to an existing verified contact, create a short-lived link intent and require authentication to that existing account. Do not create a second user and do not attach the provider yet.
 5. If there is no collision, create a new user and external identity atomically. Provider profile fields are optional display defaults, not authorization data. A provider email becomes a login contact only through the product's own explicit verification or provider-trust policy.
 6. Clear the transaction, record an authentication event, discard login-only provider tokens, rotate the BFF session, and redirect only to the stored return target.
+
+For WeChat website login, the transaction is stored in `oauth_profile_transactions`; the browser holds only its independent binding secret. The external callback cookie uses `SameSite=Lax` because WeChat returns by cross-site top-level navigation, while the resulting application session remains `SameSite=Strict`. Fixed provider hosts, redirect rejection, a ten-second timeout, bounded response bodies, OpenID equality, optional UnionID consistency, and a database compare-and-set consumption protect the provider boundary. Provider nickname is display-only; WeChat does not establish a verified application email or phone contact.
 
 ## Password policy
 
@@ -218,14 +222,14 @@ Check `status=disabled` on every session-backed request, not only at login. The 
 1. Add PostgreSQL/Prisma, forward-only migrations, the tables and constraints above, an Argon2id adapter, session/CSRF support, provider ports, delivery ports, and outbox jobs.
 2. Deliver verified email registration, password sign-in, logout, session revocation, password change, and recovery.
 3. Add phone registration/recovery with a real SMS provider, country policy, spend limits, number-recycling policy, and delivery monitoring.
-4. Add one standards-compliant OIDC provider through `OidcIdentityProvider` and GitHub, if required, through `OAuthProfileIdentityProvider`.
+4. Add one standards-compliant OIDC provider through `OidcIdentityProvider`; use the dedicated OAuth profile adapter for WeChat website QR login and add other non-OIDC providers only through reviewed adapters.
 5. Add contact management, explicit external-identity linking, passkeys, and privileged-operation step-up authentication in risk-driven increments.
 
 Required automated coverage includes normalization and uniqueness races; registration pre-hijacking attempts; pending-intent expiry and cleanup; password verification and rehash; expired, replayed, or over-attempt challenges; enumeration-resistant responses; resend and rate limits; session rotation, idle/absolute expiry, and revocation; CSRF and login-CSRF attempts; OIDC state/nonce/PKCE/issuer/audience failures; OAuth profile substitution; external email collision without implicit linking; last-sign-in-method protection; disabled-user rejection; tenant isolation after sign-in; password-recovery races; outbox retries; and audit/log redaction.
 
 ## Open choices before implementation
 
-- Select the initial providers and classify each as OIDC or OAuth profile. Obtain client IDs, secrets, exact callback URLs, minimal scopes, and permitted redirect origins.
+- For every enabled provider, obtain production credentials, exact callback URLs/domains, minimal scopes, test accounts, availability monitoring, credential-rotation procedures, and a release-verification runbook.
 - Select email and SMS delivery providers, supported countries, sender identities, templates, cost guardrails, and fallback behavior.
 - Decide whether phone registration is required at launch, since SMS introduces cost, deliverability, SIM-swap risk, number recycling, and regional compliance obligations.
 - Define concrete session, registration, verification, OTP, recovery, resend, and recent-authentication lifetimes in deployable configuration.
@@ -378,6 +382,8 @@ Registration Intent 会过期，并在较短的运维保留期后物理删除。
 | `POST /external/:provider/link/start`     | Session + CSRF + 近期认证                  | 创建绑定到当前用户的 Transaction，并返回 Authorization URL。                                                       |
 | `DELETE /external-identities/:identityId` | Session + CSRF + 近期认证                  | 仅在仍保留其他可用认证方式时解除身份绑定。                                                                         |
 
+首个具体 OAuth Profile Adapter 是微信开放平台网站扫码登录。必须完整配置 `WECHAT_PROVIDER_KEY`、`WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`，配置不完整会使应用启动失败。Adapter 使用 `snsapi_login`，只允许 API 在服务端交换 Code 和请求 Profile，并在完成后丢弃 Provider Token。Identity Key 使用网站 AppID 作用域加 OpenID。UnionID 存在时只进行一致性校验；跨应用账号统一需要 ADR 0004 定义的额外模型和冲突策略。公众号、小程序和原生应用登录属于不同的后续 Adapter。
+
 ### Session 与联系方式
 
 | 方法与路由                    | 请求                                | 结果                                                            |
@@ -415,6 +421,8 @@ Registration Intent 会过期，并在较短的运维保留期后物理删除。
 4. 如果是新 Identity，且受信任的 Provider Email 对应已有的已验证联系方式，则创建短期 Link Intent，并要求认证该现有账号。此时不创建第二个用户，也不绑定 Provider。
 5. 如果没有冲突，则原子创建新用户和 External Identity。Provider Profile 字段只能作为可选显示默认值，不能作为授权数据。只有经过产品自身显式验证或明确的 Provider Trust Policy 后，Provider Email 才能成为登录联系方式。
 6. 清除 Transaction、记录 Authentication Event、丢弃仅用于登录的 Provider Token、轮换 BFF Session，并且只重定向到已存储的 Return Target。
+
+微信网站登录把 Transaction 存储在 `oauth_profile_transactions` 中；浏览器只保存独立的 Binding Secret。由于微信通过跨站顶层导航返回，外部 Callback Cookie 使用 `SameSite=Lax`，最终应用 Session 仍使用 `SameSite=Strict`。固定 Provider Host、拒绝重定向、十秒超时、有界 Response Body、OpenID 一致性、可选 UnionID 一致性以及数据库 Compare-and-set 消费共同保护 Provider 边界。Provider Nickname 只能用于显示；微信登录不会建立经过应用验证的邮箱或手机联系方式。
 
 ## 密码策略
 
@@ -454,14 +462,14 @@ Registration Intent 会过期，并在较短的运维保留期后物理删除。
 1. 添加 PostgreSQL/Prisma、仅向前 Migration、上述数据表与约束、Argon2id Adapter、Session/CSRF 支持、Provider Port、消息发送 Port 和 Outbox Job。
 2. 交付经过邮箱验证的注册、密码登录、退出登录、Session 撤销、密码修改和恢复。
 3. 使用真实 SMS Provider 添加手机注册/恢复，并实现国家/地区策略、费用限制、号码回收策略和发送监控。
-4. 通过 `OidcIdentityProvider` 添加一个符合标准的 OIDC Provider；如果需要 GitHub，则通过 `OAuthProfileIdentityProvider` 添加。
+4. 通过 `OidcIdentityProvider` 添加一个符合标准的 OIDC Provider；微信网站扫码登录使用专用 OAuth Profile Adapter，其他非 OIDC Provider 只能通过经过 Review 的专用 Adapter 接入。
 5. 按风险逐步添加联系方式管理、显式 External Identity 绑定、Passkey 和特权操作 Step-up Authentication。
 
 必须覆盖的自动化测试包括：规范化和唯一性竞争；注册预劫持尝试；Pending Intent 过期与清理；密码验证与重新哈希；过期、重放或超过尝试次数的 Challenge；抗枚举响应；重发与速率限制；Session 轮换、空闲/绝对过期和撤销；CSRF 与 Login CSRF 尝试；OIDC State/Nonce/PKCE/Issuer/Audience 失败；OAuth Profile 替换攻击；External Email 冲突且不隐式绑定；最后一种登录方式保护；Disabled User 拒绝；登录后的租户隔离；密码恢复竞争；Outbox 重试；以及审计/日志脱敏。
 
 ## 实现前仍需决定的事项
 
-- 选择首批 Provider，并将其分类为 OIDC 或 OAuth Profile。取得 Client ID、Secret、精确 Callback URL、最小 Scope 和允许的 Redirect Origin。
+- 为每个启用的 Provider 准备生产凭据、精确 Callback URL/Domain、最小 Scope、测试账号、可用性监控、凭据轮换流程和发布验证 Runbook。
 - 选择邮件和 SMS Provider、支持国家/地区、Sender Identity、模板、费用保护和降级行为。
 - 决定首发版本是否必须支持手机注册，因为 SMS 会带来成本、送达率、SIM Swap、号码回收和区域合规责任。
 - 在可部署配置中定义具体的 Session、注册、验证、OTP、恢复、重发和近期认证有效期。

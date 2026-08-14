@@ -1,8 +1,10 @@
 # NestJS Production Scaffold
 
-This repository is a production-oriented NestJS modular-monolith scaffold. It now includes the Milestone 0 platform foundation plus the core Milestone 1 identity, tenancy, and authorization path: PostgreSQL migrations, verified email and E.164 phone registration, password and OIDC sign-in, opaque server sessions, CSRF/origin defenses, organizations and memberships, tenant-scoped projects, audit events, and transactional email/SMS delivery through the Worker.
+This repository is a production-oriented NestJS modular-monolith scaffold. It now includes the Milestone 0 platform foundation plus the core Milestone 1 identity, tenancy, and authorization path: PostgreSQL migrations, verified email and E.164 phone registration, password, OIDC, and WeChat website QR sign-in, opaque server sessions, CSRF/origin defenses, organizations and memberships, tenant-scoped projects, audit events, and transactional email/SMS delivery through the Worker.
 
 The project decisions that guide this scaffold are in `docs/REFERENCE_PRODUCT.md`, `docs/API_CONVENTIONS.md`, `docs/THREAT_MODEL.md`, and `docs/adr/`. Milestone 0 acceptance evidence is recorded in `docs/MILESTONE_0_ACCEPTANCE.md`.
+
+The standalone learning path is in [`tutorials/nestjs-backend/`](tutorials/nestjs-backend/README.md). Its generated project facts and CI drift checks keep code examples aligned with the repository.
 
 ## Prerequisites
 
@@ -27,6 +29,8 @@ Open `http://localhost:3000/docs` for OpenAPI and use these endpoints:
 
 Email messages appear in Mailpit at `http://localhost:8025`. Phone registration is disabled by default; set `SMS_PROVIDER=twilio` and all three `TWILIO_*` values in `.env` to enable real SMS delivery. The API always commits delivery requests to PostgreSQL first, and the Worker claims them with bounded retries.
 
+WeChat login is disabled by default. After a WeChat Open Platform website application and its callback domain are approved, set `WECHAT_PROVIDER_KEY=wechat`, `WECHAT_APP_ID`, and `WECHAT_APP_SECRET`. Register `<API_PUBLIC_ORIGIN>/api/auth/external/wechat/callback` as the callback URL (for example, `https://api.example.com/api/auth/external/wechat/callback`; use the actual configured provider key). The integration is website QR login, not Official Account or Mini Program login; see ADR 0004 for identity and security boundaries.
+
 `docker compose ps` shows the API, Worker, PostgreSQL, both Redis services, MinIO, and Mailpit. Use `docker compose logs -f api worker` to follow application logs and `docker compose down` to stop the stack.
 
 For host-based hot reload, start only the dependencies and then run the API and Worker in separate terminals:
@@ -45,6 +49,7 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm tutorial:check
 pnpm build
 docker compose config --quiet
 docker compose build migration api worker
@@ -73,9 +78,11 @@ The current Worker processes PostgreSQL transactional-outbox email and SMS event
 
 # NestJS 生产级脚手架（中文版）
 
-本仓库是一套面向生产环境的 NestJS 模块化单体脚手架。目前已包含 Milestone 0 平台基础，以及 Milestone 1 的核心身份、租户和授权链路：PostgreSQL Migration、经过验证的邮箱和 E.164 手机号注册、密码与 OIDC 登录、不透明服务端 Session、CSRF/Origin 防护、Organization 与 Membership、租户范围 Project、Audit Event，以及由 Worker 通过事务 Outbox 完成的邮件/SMS 投递。
+本仓库是一套面向生产环境的 NestJS 模块化单体脚手架。目前已包含 Milestone 0 平台基础，以及 Milestone 1 的核心身份、租户和授权链路：PostgreSQL Migration、经过验证的邮箱和 E.164 手机号注册、密码、OIDC 与微信网站扫码登录、不透明服务端 Session、CSRF/Origin 防护、Organization 与 Membership、租户范围 Project、Audit Event，以及由 Worker 通过事务 Outbox 完成的邮件/SMS 投递。
 
 指导本脚手架的项目决策记录在 `docs/REFERENCE_PRODUCT.md`、`docs/API_CONVENTIONS.md`、`docs/THREAT_MODEL.md` 和 `docs/adr/` 中。Milestone 0 的验收证据记录在 `docs/MILESTONE_0_ACCEPTANCE.md` 中。
+
+独立学习教程位于 [`tutorials/nestjs-backend/`](tutorials/nestjs-backend/README.md)，其中的项目事实快照和 CI 漂移检查用于保持教程与仓库代码同步。
 
 ## 前置要求
 
@@ -100,6 +107,8 @@ docker compose up --build -d
 
 邮件可在 Mailpit 的 `http://localhost:8025` 中查看。手机注册默认关闭；在 `.env` 中设置 `SMS_PROVIDER=twilio` 以及三个完整的 `TWILIO_*` 配置后，才会启用真实 SMS 投递。API 总是先把投递请求提交到 PostgreSQL，再由 Worker 领取并执行有限次数重试。
 
+微信登录默认关闭。微信开放平台网站应用及其回调域名审核通过后，设置 `WECHAT_PROVIDER_KEY=wechat`、`WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`。在微信开放平台登记 `<API_PUBLIC_ORIGIN>/api/auth/external/wechat/callback` 作为回调地址（例如 `https://api.example.com/api/auth/external/wechat/callback`；路径中的 Provider Key 应与实际配置一致）。本集成是网站扫码登录，不是公众号或小程序登录；身份与安全边界见 ADR 0004。
+
 `docker compose ps` 会显示 API、Worker、PostgreSQL、两个 Redis 服务、MinIO 和 Mailpit。使用 `docker compose logs -f api worker` 跟踪应用日志，使用 `docker compose down` 停止整套环境。
 
 如需在 Host 上使用 Hot Reload，只启动依赖服务，然后分别在两个终端中运行 API 和 Worker：
@@ -118,6 +127,7 @@ pnpm format:check
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm tutorial:check
 pnpm build
 docker compose config --quiet
 docker compose build migration api worker

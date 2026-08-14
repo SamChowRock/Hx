@@ -1,6 +1,14 @@
 import { z } from 'zod';
 
 const booleanFromString = z.enum(['true', 'false']).transform((value) => value === 'true');
+const optionalString = z.preprocess(
+  (value) => (value === '' ? undefined : value),
+  z.string().min(1).optional(),
+);
+const optionalUrl = z.preprocess(
+  (value) => (value === '' ? undefined : value),
+  z.string().url().optional(),
+);
 
 const developmentAuthSecret = 'development-only-auth-secret-change-before-production';
 
@@ -20,15 +28,18 @@ export const environmentSchema = z
     SMTP_URL: z.string().url().default('smtp://localhost:1025'),
     EMAIL_FROM: z.string().email().default('no-reply@example.test'),
     SMS_PROVIDER: z.enum(['disabled', 'twilio']).default('disabled'),
-    TWILIO_ACCOUNT_SID: z.string().min(1).optional(),
-    TWILIO_AUTH_TOKEN: z.string().min(1).optional(),
-    TWILIO_FROM: z.string().min(1).optional(),
+    TWILIO_ACCOUNT_SID: optionalString,
+    TWILIO_AUTH_TOKEN: optionalString,
+    TWILIO_FROM: optionalString,
     WEB_APP_ORIGIN: z.string().url().default('http://localhost:5173'),
     API_PUBLIC_ORIGIN: z.string().url().default('http://localhost:3000'),
-    OIDC_PROVIDER_KEY: z.string().min(1).optional(),
-    OIDC_ISSUER: z.string().url().optional(),
-    OIDC_CLIENT_ID: z.string().min(1).optional(),
-    OIDC_CLIENT_SECRET: z.string().min(1).optional(),
+    OIDC_PROVIDER_KEY: optionalString,
+    OIDC_ISSUER: optionalUrl,
+    OIDC_CLIENT_ID: optionalString,
+    OIDC_CLIENT_SECRET: optionalString,
+    WECHAT_PROVIDER_KEY: optionalString,
+    WECHAT_APP_ID: optionalString,
+    WECHAT_APP_SECRET: optionalString,
   })
   .superRefine((environment, context) => {
     const deployed = environment.NODE_ENV === 'staging' || environment.NODE_ENV === 'production';
@@ -77,6 +88,30 @@ export const environmentSchema = z
         code: z.ZodIssueCode.custom,
         path: ['OIDC_PROVIDER_KEY'],
         message: 'OIDC provider key, issuer, and client ID must be configured together',
+      });
+    }
+
+    const wechatValues = [
+      environment.WECHAT_PROVIDER_KEY,
+      environment.WECHAT_APP_ID,
+      environment.WECHAT_APP_SECRET,
+    ];
+    const configuredWechatValues = wechatValues.filter(Boolean).length;
+    if (configuredWechatValues > 0 && configuredWechatValues !== wechatValues.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['WECHAT_PROVIDER_KEY'],
+        message: 'WeChat provider key, AppID, and AppSecret must be configured together',
+      });
+    }
+    if (
+      environment.WECHAT_PROVIDER_KEY &&
+      environment.WECHAT_PROVIDER_KEY === environment.OIDC_PROVIDER_KEY
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['WECHAT_PROVIDER_KEY'],
+        message: 'must not conflict with OIDC_PROVIDER_KEY',
       });
     }
 
