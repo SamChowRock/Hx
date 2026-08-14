@@ -36,6 +36,7 @@ import {
   transientCsrfToken,
 } from './identity.service';
 import { OidcService } from './oidc.service';
+import { WeChatOAuthService } from './wechat-oauth.service';
 
 const emailSchema = z.object({ email: z.string().email() });
 const completionSchema = z.object({
@@ -66,6 +67,7 @@ export class IdentityController {
   constructor(
     private readonly identity: IdentityService,
     private readonly oidc: OidcService,
+    private readonly wechat: WeChatOAuthService,
     @Inject(ENVIRONMENT) private readonly environment: Environment,
   ) {}
 
@@ -243,20 +245,24 @@ export class IdentityController {
 
   @Post('external/:provider/start')
   @HttpCode(HttpStatus.OK)
-  async startOidc(
+  async startExternalAuthentication(
     @Param('provider') provider: string,
     @Body() body: unknown,
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
     assertAllowedOrigin(request, this.environment);
-    const returnTo = z.object({ returnTo: z.string().default('/') }).parse(body).returnTo;
+    const returnTo = z
+      .object({ returnTo: z.string().max(2_048).default('/') })
+      .parse(body).returnTo;
     safeWebReturnUrl(returnTo, this.environment);
-    const transaction = await this.oidc.start(this.environment, provider, returnTo);
+    const transaction = this.wechat.supports(this.environment, provider)
+      ? await this.wechat.start(this.environment, provider, returnTo)
+      : await this.oidc.start(this.environment, provider, returnTo);
     setAuthCookie(
       response,
       this.environment,
-      'oidc-transaction',
+      'external-transaction',
       transaction.binding,
       10 * 60 * 1000,
     );
@@ -264,14 +270,16 @@ export class IdentityController {
   }
 
   @Get('external/:provider/callback')
-  async oidcCallback(
+  async externalAuthenticationCallback(
     @Param('provider') provider: string,
     @Req() request: Request,
     @Res() response: Response,
   ) {
-    const binding = readAuthCookie(request, this.environment, 'oidc-transaction');
+    const binding = readAuthCookie(request, this.environment, 'external-transaction');
     const currentUrl = new URL(request.originalUrl, this.environment.API_PUBLIC_ORIGIN);
-    const result = await this.oidc.complete(this.environment, provider, currentUrl, binding);
+    const result = this.wechat.supports(this.environment, provider)
+      ? await this.wechat.complete(this.environment, provider, currentUrl, binding)
+      : await this.oidc.complete(this.environment, provider, currentUrl, binding);
     this.setSession(
       response,
       await this.identity.createSession(
@@ -280,7 +288,7 @@ export class IdentityController {
         this.sessionMetadata(request),
       ),
     );
-    clearAuthCookie(response, this.environment, 'oidc-transaction');
+    clearAuthCookie(response, this.environment, 'external-transaction');
     return response.redirect(302, safeWebReturnUrl(result.returnTo, this.environment).href);
   }
 

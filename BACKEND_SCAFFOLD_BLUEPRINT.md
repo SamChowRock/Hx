@@ -168,7 +168,7 @@ Generate an API client for the frontend if it helps, but do not share server dat
 
 Authentication answers “who are you?” Authorization answers “may you do this?” Keep them distinct.
 
-The browser model is a NestJS Backend-for-Frontend (BFF) that converts every successful authentication method into the same opaque server-side session. Standards-compliant OIDC providers use Authorization Code flow with PKCE and validate `state`, `nonce`, issuer, audience, expiration, signatures, and provider key rotation. OAuth profile providers use their documented code flow and authenticated profile endpoint. Verified email/phone credentials follow the registration and recovery state machines in `docs/USER_AUTH_MODULE.md`. Provider tokens and application session secrets never enter browser JavaScript.
+The browser model is a NestJS Backend-for-Frontend (BFF) that converts every successful authentication method into the same opaque server-side session. Standards-compliant OIDC providers use Authorization Code flow with PKCE and validate `state`, `nonce`, issuer, audience, expiration, signatures, and provider key rotation. OAuth profile providers use reviewed, provider-specific adapters for their documented code flow and authenticated profile endpoint. The initial example is WeChat Open Platform website QR login, whose AppID-scoped OpenID and UnionID boundary is recorded in ADR 0004. Verified email/phone credentials follow the registration and recovery state machines in `docs/USER_AUTH_MODULE.md`. Provider tokens and application session secrets never enter browser JavaScript.
 
 Store server-side sessions in PostgreSQL initially; store a hash of the opaque cookie value rather than the raw secret. Sessions have expiration, rotation after login/privilege changes, per-device visibility, logout, administrative revocation, and “revoke all sessions.” Move sessions to a dedicated Redis only after a measured need and a durability/failover ADR. Apply CSRF protection to cookie-authenticated state changes. Mobile and machine clients use separate OAuth flows and audiences. If the product deliberately chooses SPA bearer tokens instead, record a replacement ADR covering token storage, short access-token lifetime, refresh-token rotation/reuse detection, logout, and XSS defenses.
 
@@ -346,7 +346,7 @@ Initialize the default implementation baseline, strict TypeScript, ESLint/Pretti
 
 ### Milestone 1 — Identity and tenancy
 
-Add the OIDC BFF flow, verified email/phone registration and password sign-in, server-side sessions, users/organizations/memberships, RBAC/policies enforced by application use cases, tenant-scoped repositories/jobs, audit logging, and authorization E2E tests across HTTP/Worker/CLI. Implement `docs/USER_AUTH_MODULE.md` and its account-linking, recovery, and abuse controls before enabling public registration. This is the point at which the scaffold becomes safe for a multi-user product.
+Add the OIDC BFF flow, a reviewed OAuth profile adapter such as WeChat website QR login, verified email/phone registration and password sign-in, server-side sessions, users/organizations/memberships, RBAC/policies enforced by application use cases, tenant-scoped repositories/jobs, audit logging, and authorization E2E tests across HTTP/Worker/CLI. Implement `docs/USER_AUTH_MODULE.md` and its account-linking, recovery, and abuse controls before enabling public registration. This is the point at which the scaffold becomes safe for a multi-user product.
 
 ### Milestone 2 — One vertical product slice
 
@@ -564,7 +564,7 @@ API 是产品入口，而不是实现细节。在 CI 中从应用发布 OpenAPI�
 
 认证回答“你是谁？”，授权回答“你能否执行此操作？”，必须将两者分开。
 
-浏览器模型使用 NestJS Backend-for-Frontend（BFF），将每种成功认证方式转换为同一种不透明服务端 Session。符合标准的 OIDC Provider 使用带 PKCE 的 Authorization Code Flow，并校验 `state`、`nonce`、Issuer、Audience、过期时间、签名和 Provider Key Rotation。OAuth Profile Provider 使用其文档规定的 Code Flow 和经过认证的 Profile Endpoint。已验证邮箱/手机凭据遵循 `docs/USER_AUTH_MODULE.md` 中的注册与恢复状态机。Provider Token 和应用 Session Secret 永远不会进入浏览器 JavaScript。
+浏览器模型使用 NestJS Backend-for-Frontend（BFF），将每种成功认证方式转换为同一种不透明服务端 Session。符合标准的 OIDC Provider 使用带 PKCE 的 Authorization Code Flow，并校验 `state`、`nonce`、Issuer、Audience、过期时间、签名和 Provider Key Rotation。OAuth Profile Provider 使用经过 Review 的 Provider 专用 Adapter，实现其文档规定的 Code Flow 和经过认证的 Profile Endpoint。首个示例是微信开放平台网站扫码登录，其 AppID 作用域 OpenID 与 UnionID 边界记录在 ADR 0004 中。已验证邮箱/手机凭据遵循 `docs/USER_AUTH_MODULE.md` 中的注册与恢复状态机。Provider Token 和应用 Session Secret 永远不会进入浏览器 JavaScript。
 
 初期将服务端 Session 存在 PostgreSQL，只保存不透明 Cookie 值的哈希，不保存原始 Secret。Session 具有过期、登录/权限变更后轮换、按设备可见、退出登录、管理员撤销和“撤销全部 Session”能力。只有在有实际测量需求，并完成持久性/故障切换 ADR 后，才将 Session 移到专用 Redis。使用 Cookie 认证的状态变更必须应用 CSRF 防护。移动端和机器客户端使用不同的 OAuth Flow 与 Audience。如果产品有意选择 SPA Bearer Token，则应编写一份替代 ADR，覆盖 Token 存储、短期 Access Token、Refresh Token 轮换/复用检测、退出登录和 XSS 防护。
 
@@ -742,7 +742,7 @@ Expand/Contract 变更跨越多个版本：扩展 Schema；部署兼容新旧 Sh
 
 ### Milestone 1 — 身份与租户
 
-添加 OIDC BFF Flow、已验证邮箱/手机注册与密码登录、服务端 Session、User/Organization/Membership、由应用 Use Case 强制执行的 RBAC/Policy、租户范围 Repository/Job、Audit Log，以及跨 HTTP/Worker/CLI 的授权 E2E Test。在开放公共注册前实现 `docs/USER_AUTH_MODULE.md` 及其账号绑定、恢复和滥用控制。到这一阶段，脚手架才足以安全支持多用户产品。
+添加 OIDC BFF Flow、经过 Review 的 OAuth Profile Adapter（例如微信网站扫码登录）、已验证邮箱/手机注册与密码登录、服务端 Session、User/Organization/Membership、由应用 Use Case 强制执行的 RBAC/Policy、租户范围 Repository/Job、Audit Log，以及跨 HTTP/Worker/CLI 的授权 E2E Test。在开放公共注册前实现 `docs/USER_AUTH_MODULE.md` 及其账号绑定、恢复和滥用控制。到这一阶段，脚手架才足以安全支持多用户产品。
 
 ### Milestone 2 — 一个垂直产品切片
 

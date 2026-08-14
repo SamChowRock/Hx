@@ -3,7 +3,11 @@ import type { Request, Response } from 'express';
 
 import { type Environment } from '../../../../libs/platform/src/config';
 
-type AuthCookieKind = 'session' | 'registration' | 'password-reset' | 'oidc-transaction';
+type AuthCookieKind = 'session' | 'registration' | 'password-reset' | 'external-transaction';
+
+function authCookieSameSite(kind: AuthCookieKind): 'lax' | 'strict' {
+  return kind === 'external-transaction' ? 'lax' : 'strict';
+}
 
 export function authCookieName(environment: Environment, kind: AuthCookieKind): string {
   const prefix =
@@ -23,7 +27,7 @@ export function setAuthCookie(
   response.cookie(authCookieName(environment, kind), value, {
     httpOnly: true,
     secure: environment.NODE_ENV === 'production' || environment.NODE_ENV === 'staging',
-    sameSite: kind === 'oidc-transaction' ? 'lax' : 'strict',
+    sameSite: authCookieSameSite(kind),
     path: '/',
     maxAge: maxAgeMs,
   });
@@ -37,7 +41,7 @@ export function clearAuthCookie(
   response.clearCookie(authCookieName(environment, kind), {
     httpOnly: true,
     secure: environment.NODE_ENV === 'production' || environment.NODE_ENV === 'staging',
-    sameSite: kind === 'oidc-transaction' ? 'lax' : 'strict',
+    sameSite: authCookieSameSite(kind),
     path: '/',
   });
 }
