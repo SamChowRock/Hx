@@ -33,6 +33,36 @@ describe('loadEnvironment', () => {
     );
   });
 
+  it('treats blank optional provider values as disabled', () => {
+    expect(
+      loadEnvironment({
+        OIDC_PROVIDER_KEY: '',
+        OIDC_ISSUER: '',
+        OIDC_CLIENT_ID: '',
+        OIDC_CLIENT_SECRET: '',
+        WECHAT_PROVIDER_KEY: '',
+        WECHAT_APP_ID: '',
+        WECHAT_APP_SECRET: '',
+      }),
+    ).toMatchObject({ OIDC_PROVIDER_KEY: undefined, WECHAT_PROVIDER_KEY: undefined });
+  });
+
+  it('requires complete and non-conflicting WeChat configuration', () => {
+    expect(() => loadEnvironment({ WECHAT_PROVIDER_KEY: 'wechat' })).toThrow(
+      /WeChat provider key, AppID, and AppSecret/,
+    );
+    expect(() =>
+      loadEnvironment({
+        OIDC_PROVIDER_KEY: 'wechat',
+        OIDC_ISSUER: 'https://issuer.example.test',
+        OIDC_CLIENT_ID: 'client-id',
+        WECHAT_PROVIDER_KEY: 'wechat',
+        WECHAT_APP_ID: 'wx-app-id',
+        WECHAT_APP_SECRET: 'app-secret',
+      }),
+    ).toThrow(/must not conflict with OIDC_PROVIDER_KEY/);
+  });
+
   it('requires complete Twilio configuration before enabling SMS', () => {
     expect(() => loadEnvironment({ SMS_PROVIDER: 'twilio' })).toThrow(
       /TWILIO_ACCOUNT_SID.*TWILIO_AUTH_TOKEN.*TWILIO_FROM/,

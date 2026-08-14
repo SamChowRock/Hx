@@ -38,10 +38,11 @@ This is the baseline threat model. Each sensitive feature adds a focused entry w
 - Phone OTP delivery is disabled until a complete Twilio configuration is provided. E.164 normalization, resend cooldowns, hourly send bounds, OTP attempt bounds, and generic decoy challenge responses reduce abuse and enumeration risk. SMS remains vulnerable to SIM swaps and number recycling and is not treated as phishing-resistant MFA.
 - Durable email/SMS side effects are written to PostgreSQL in the same transaction as their intent. The Worker uses compare-and-set claiming, stale-lock recovery, bounded exponential retries, a dead state, stable email message IDs, and payload redaction after delivery.
 - OIDC uses Authorization Code with PKCE, state, nonce, exact callback origins, browser binding, encrypted transaction secrets, safe relative return targets, and one-time transaction consumption. Provider email claims never cause implicit account linking.
+- WeChat website QR login is a dedicated OAuth profile adapter rather than an OIDC configuration. It uses fixed HTTPS provider endpoints, an AppID-scoped OpenID, hashed state and browser binding, a `SameSite=Lax` transient callback cookie, one-time database consumption, provider timeouts and response-size bounds, and server-only code/profile exchange. Login-only provider tokens are discarded, nickname is display-only, and UnionID never triggers implicit cross-application or local-account linking.
 
 ## Current limitations and follow-up controls
 
-- OIDC and SMS providers are optional and must be configured and operationally monitored before their routes are offered to users. Explicit external-identity linking, verified-contact management, provider-email collision recovery, passkeys, and privileged step-up authentication remain follow-up identity work.
+- OIDC, WeChat, and SMS providers are optional and must be fully configured and operationally monitored before their routes are offered to users. WeChat production readiness also depends on provider approval, an exact callback domain, credential rotation, test accounts, and a release runbook. Official Account/Mini Program/native login, cross-AppID UnionID aliases, explicit external-identity linking, verified-contact management, provider-email collision recovery, passkeys, and privileged step-up authentication remain follow-up identity work.
 - The outbox processor is an intentionally small PostgreSQL poller. BullMQ generalization, queue dashboards, replay tooling, delivery-provider webhooks, retention jobs, and alerting remain Milestone 3 work.
 - Object upload, quarantine/scanning, webhooks, an administrative control plane, secret-manager integration, artifact signing/SBOM publication, and production deployment automation are not implemented yet. Their baseline entries above are requirements, not claims of completed controls.
 
@@ -87,9 +88,10 @@ This is the baseline threat model. Each sensitive feature adds a focused entry w
 - 只有提供完整 Twilio 配置后才会启用手机 OTP 投递。E.164 规范化、重发冷却、每小时发送上限、OTP 尝试次数上限和通用诱饵 Challenge 响应用于降低滥用与枚举风险。SMS 仍然存在 SIM Swap 和号码回收风险，不能视为抗钓鱼 MFA。
 - 可靠邮件/SMS 副作用与其 Intent 在同一个 PostgreSQL 事务中写入。Worker 使用 Compare-and-set 领取、过期锁恢复、有限指数退避重试、Dead 状态、稳定 Email Message ID，并在成功投递后脱敏 Payload。
 - OIDC 使用带 PKCE、State、Nonce、精确 Callback Origin、浏览器绑定、加密事务 Secret、安全相对 Return Target 和一次性事务消费的 Authorization Code Flow。Provider Email Claim 永远不会触发隐式账号绑定。
+- 微信网站扫码登录使用专用 OAuth Profile Adapter，而不是伪装成 OIDC 配置。它使用固定 HTTPS Provider Endpoint、AppID 作用域 OpenID、经过哈希的 State 与 Browser Binding、`SameSite=Lax` 临时 Callback Cookie、数据库单次消费、Provider 超时与 Response Size 上限，并且只在服务端交换 Code/获取 Profile。仅用于登录的 Provider Token 会被丢弃，Nickname 只能用于显示，UnionID 不会触发隐式跨应用或本地账号绑定。
 
 ## 当前限制与后续控制
 
-- OIDC 与 SMS Provider 都是可选配置；向用户开放相关 Route 前，必须完成配置和运维监控。显式外部身份绑定、已验证联系方式管理、Provider Email 冲突恢复、Passkey 和特权操作 Step-up Authentication 仍属于后续身份工作。
+- OIDC、微信和 SMS Provider 都是可选配置；向用户开放相关 Route 前，必须完成全部配置和运维监控。微信生产就绪还依赖 Provider 审核、精确 Callback Domain、凭据轮换、测试账号和发布 Runbook。公众号/小程序/原生登录、跨 AppID UnionID Alias、显式外部身份绑定、已验证联系方式管理、Provider Email 冲突恢复、Passkey 和特权操作 Step-up Authentication 仍属于后续身份工作。
 - 当前 Outbox Processor 是刻意保持精简的 PostgreSQL Poller。BullMQ 通用化、Queue Dashboard、重放工具、投递 Provider Webhook、保留期 Job 和告警仍属于 Milestone 3。
 - 对象上传、隔离/扫描、Webhook、管理控制面、Secret Manager 集成、制品签名/SBOM 发布以及生产部署自动化尚未实现。上方对应的基线条目是要求，并不代表控制已经完成。

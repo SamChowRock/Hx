@@ -92,6 +92,20 @@ model OidcTransaction {
   @@map("oidc_transactions")
 }
 
+model OAuthProfileTransaction {
+  id                 String    @id @default(uuid()) @db.Uuid
+  providerKey        String    @map("provider_key")
+  stateHash          String    @unique @map("state_hash")
+  browserBindingHash String    @map("browser_binding_hash")
+  returnTo           String    @map("return_to")
+  expiresAt          DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt         DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([expiresAt])
+  @@map("oauth_profile_transactions")
+}
+
 model UserContact {
   id              String      @id @default(uuid()) @db.Uuid
   userId          String      @map("user_id") @db.Uuid
