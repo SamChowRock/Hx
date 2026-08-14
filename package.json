@@ -23,6 +23,12 @@
     "test:e2e": "jest --config jest.e2e.config.cjs --runInBand",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
+    "tutorial:generate": "node scripts/tutorial/generate-project-facts.mjs",
+    "tutorial:drift": "node scripts/tutorial/check-drift.mjs",
+    "tutorial:links": "node scripts/tutorial/check-links.mjs",
+    "tutorial:check": "node scripts/tutorial/check-all.mjs",
+    "tutorial:impact": "node scripts/tutorial/check-impact.mjs",
+    "tutorial:impact:check": "node scripts/tutorial/check-impact.mjs --check",
     "prepare": "husky"
   },
   "dependencies": {

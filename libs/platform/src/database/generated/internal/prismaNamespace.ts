@@ -16,10 +16,10 @@
  */
 
 import * as runtime from "@prisma/client/runtime/client"
-import type * as Prisma from "../models"
-import { type PrismaClient } from "./class"
+import type * as Prisma from "../models.js"
+import { type PrismaClient } from "./class.js"
 
-export type * from '../models'
+export type * from '../models.js'
 
 export type DMMF = typeof runtime.DMMF
 
@@ -400,6 +400,7 @@ export const ModelName = {
   User: 'User',
   ExternalIdentity: 'ExternalIdentity',
   OidcTransaction: 'OidcTransaction',
+  OAuthProfileTransaction: 'OAuthProfileTransaction',
   UserContact: 'UserContact',
   PasswordCredential: 'PasswordCredential',
   Organization: 'Organization',
@@ -426,7 +427,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "externalIdentity" | "oidcTransaction" | "userContact" | "passwordCredential" | "organization" | "project" | "membership" | "session" | "registrationIntent" | "phoneRegistrationIntent" | "passwordResetIntent" | "auditEvent" | "outboxEvent"
+    modelProps: "user" | "externalIdentity" | "oidcTransaction" | "oAuthProfileTransaction" | "userContact" | "passwordCredential" | "organization" | "project" | "membership" | "session" | "registrationIntent" | "phoneRegistrationIntent" | "passwordResetIntent" | "auditEvent" | "outboxEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -649,6 +650,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.OidcTransactionCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.OidcTransactionCountAggregateOutputType> | number
+        }
+      }
+    }
+    OAuthProfileTransaction: {
+      payload: Prisma.$OAuthProfileTransactionPayload<ExtArgs>
+      fields: Prisma.OAuthProfileTransactionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.OAuthProfileTransactionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.OAuthProfileTransactionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload>
+        }
+        findFirst: {
+          args: Prisma.OAuthProfileTransactionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.OAuthProfileTransactionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload>
+        }
+        findMany: {
+          args: Prisma.OAuthProfileTransactionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload>[]
+        }
+        create: {
+          args: Prisma.OAuthProfileTransactionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload>
+        }
+        createMany: {
+          args: Prisma.OAuthProfileTransactionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.OAuthProfileTransactionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload>[]
+        }
+        delete: {
+          args: Prisma.OAuthProfileTransactionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload>
+        }
+        update: {
+          args: Prisma.OAuthProfileTransactionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload>
+        }
+        deleteMany: {
+          args: Prisma.OAuthProfileTransactionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.OAuthProfileTransactionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.OAuthProfileTransactionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload>[]
+        }
+        upsert: {
+          args: Prisma.OAuthProfileTransactionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$OAuthProfileTransactionPayload>
+        }
+        aggregate: {
+          args: Prisma.OAuthProfileTransactionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateOAuthProfileTransaction>
+        }
+        groupBy: {
+          args: Prisma.OAuthProfileTransactionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OAuthProfileTransactionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.OAuthProfileTransactionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.OAuthProfileTransactionCountAggregateOutputType> | number
         }
       }
     }
@@ -1545,6 +1620,20 @@ export const OidcTransactionScalarFieldEnum = {
 export type OidcTransactionScalarFieldEnum = (typeof OidcTransactionScalarFieldEnum)[keyof typeof OidcTransactionScalarFieldEnum]
 
 
+export const OAuthProfileTransactionScalarFieldEnum = {
+  id: 'id',
+  providerKey: 'providerKey',
+  stateHash: 'stateHash',
+  browserBindingHash: 'browserBindingHash',
+  returnTo: 'returnTo',
+  expiresAt: 'expiresAt',
+  consumedAt: 'consumedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type OAuthProfileTransactionScalarFieldEnum = (typeof OAuthProfileTransactionScalarFieldEnum)[keyof typeof OAuthProfileTransactionScalarFieldEnum]
+
+
 export const UserContactScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -2044,6 +2133,7 @@ export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   externalIdentity?: Prisma.ExternalIdentityOmit
   oidcTransaction?: Prisma.OidcTransactionOmit
+  oAuthProfileTransaction?: Prisma.OAuthProfileTransactionOmit
   userContact?: Prisma.UserContactOmit
   passwordCredential?: Prisma.PasswordCredentialOmit
   organization?: Prisma.OrganizationOmit
