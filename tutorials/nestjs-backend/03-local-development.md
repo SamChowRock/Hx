@@ -176,6 +176,48 @@ Controller → IdentityService → PostgreSQL Transaction
 
 ## 3.7 直接观察 PostgreSQL 中的数据
 
+### 方式一：Prisma Studio（最适合先观察业务数据）
+
+如果你不想先学习 `psql`，使用 Prisma Studio 是最快的入口：它会把当前 Prisma Schema 中的 Model 显示成可筛选、可展开关联的表格界面。
+
+```bash
+pnpm exec prisma studio
+```
+
+浏览器会打开 `http://localhost:5555`。优先观察这些表与一次请求之间的关系：
+
+- `registration_intents`：邮箱注册请求尚未验证时的短期意图；
+- `users`、`organizations`、`memberships`：注册成功后创建的用户和默认租户；
+- `sessions`：浏览器登录会话；
+- `external_identities`、`oauth_profile_transactions`：OIDC/微信等外部身份与登录回调事务；
+- `outbox_events`：事务内写入、由 Worker 异步投递的事件。
+
+Studio 可以编辑和删除数据，但它会绕过 Controller、Service、权限、审计和业务不变量。只把它用于本地开发数据；不要连接生产数据库，也不要用它“修复”状态异常。
+
+### 方式二：数据库 GUI（适合写 SQL 和看执行计划）
+
+当你需要执行任意 SQL、查看 Index、分析锁或运行 `EXPLAIN ANALYZE` 时，安装 DBeaver（免费、跨平台）或 TablePlus（macOS 体验较好）会比 Prisma Studio 更合适。先确保 Compose 中的 `postgres` 已启动，再新建 PostgreSQL 连接：
+
+| 字段     | 当前本地开发值 |
+| -------- | -------------- |
+| Host     | `localhost`    |
+| Port     | `5432`         |
+| Database | `scaffold`     |
+| User     | `scaffold`     |
+| Password | `scaffold`     |
+| Schema   | `public`       |
+| SSL      | 关闭           |
+
+连接串也可以直接粘贴：
+
+```text
+postgresql://scaffold:scaffold@localhost:5432/scaffold?schema=public
+```
+
+这些是 Compose 为本地开发提供的公开凭据，不可复用到生产环境。连接成功后，在 `public` Schema 下展开 Tables；使用 SQL Console 执行只读查询或 `EXPLAIN (ANALYZE, BUFFERS)`。前端开发中常见的浏览器 Network 面板，到了数据库层就对应这里的 Query History、执行计划和锁等待视图。
+
+### 方式三：容器内 `psql`（适合学习 PostgreSQL 本身）
+
 进入容器内的 `psql`：
 
 ```bash
