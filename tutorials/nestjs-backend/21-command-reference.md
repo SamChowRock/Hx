@@ -26,6 +26,9 @@ pnpm prisma:generate
 pnpm exec prisma migrate dev --name <migration_name>
 pnpm prisma:migrate:deploy
 pnpm exec prisma migrate status
+
+# 启动 Prisma 的本地数据浏览器（默认 http://localhost:5555）
+pnpm exec prisma studio
 ```
 
 ## 质量检查
