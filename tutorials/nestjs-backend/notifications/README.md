@@ -4,6 +4,8 @@
 
 通知看起来像前端右上角的红点，实际上是一个跨越业务事务、后台投递、数据库幂等和实时连接的可靠性问题。本项目实现的是**持久化站内通知**，不是聊天、营销群发、邮件/SMS 引擎或移动 Push。
 
+第一次接触 Transaction、Outbox、Worker 和幂等时，先读[后端核心词汇](../mindset/02-05-backend-vocabulary.md)；本专题默认这些概念已经建立。
+
 源码入口：`apps/api/src/notifications/`、`libs/platform/src/notifications/`、`apps/worker/src/worker.service.ts`；产品契约见 `docs/USER_NOTIFICATIONS_MODULE.md`。
 
 ## 1. 三层职责：事实、低延迟、恢复

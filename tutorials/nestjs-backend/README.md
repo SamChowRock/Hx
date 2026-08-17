@@ -69,7 +69,7 @@
 ### 第一部分：认识系统
 
 - [01｜项目、架构和技术选型](01-overview-and-stack.md)
-- [02｜前端研发转后端：核心思维（分为 4 册）](mindset/README.md)
+- [02｜前端研发转后端：核心思维（分为 5 册）](mindset/README.md)
 
 ### 第二部分：NestJS 与本地开发
 

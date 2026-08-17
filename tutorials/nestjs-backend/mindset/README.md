@@ -2,12 +2,13 @@
 
 > [返回教程首页](../README.md)
 
-这个模块被拆成 4 册。建议按顺序阅读，但每次只读一册。
+这个模块被拆成 5 册。建议按顺序阅读，但每次只读一册。
 
 1. [学习目标、最小后端知识与学习方法](02-01-learning-path.md)
 2. [后端权威性、信任边界与状态归属](02-02-authority-trust-state.md)
 3. [并发、网络失败、一致性与不变量](02-03-concurrency-failure-consistency.md)
 4. [API 契约、安全、可运维性与多实例](02-04-contract-security-operations.md)
+5. [后端核心词汇：事务、Outbox、Worker 与幂等](02-05-backend-vocabulary.md)
 
 读完后，你应能解释：
 
@@ -17,3 +18,4 @@
 - 哪些状态放 PostgreSQL、Redis、Object Storage 或进程内存；
 - 哪些结果必须强一致，哪些适合最终一致；
 - 一个后端功能除了 Endpoint 还需要设计什么。
+- Outbox、Worker、幂等和事实源各自解决什么问题。
