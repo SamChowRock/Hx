@@ -72,7 +72,7 @@ Consumer 使用 `createMany({ skipDuplicates: true })`，而数据库的 `(userI
 | `PATCH .../:id/read` / `read-all`     | 标记已读          | Session + Origin + CSRF |
 | `DELETE .../:id` / `read`             | 清除              | Session + Origin + CSRF |
 
-每个数据库读写都带服务端解析出的 Actor `userId`。一个属于别人的有效 Notification ID 返回 `404`，不泄露其存在。不存在公开“给某用户发通知”的 Controller；创建能力只在内部 Service/Outbox 中。
+每个数据库读写都带服务端解析出的 Actor `userId`。一个属于别人的有效 Notification ID 返回 `404`，不泄露其存在。通知属于用户范围的 Resource：这里的隔离 Scope 是当前 Actor，而不是 Organization Tenant。不存在公开“给某用户发通知”的 Controller；创建能力只在内部 Service/Outbox 中。Actor、Tenant、Action、Resource 的完整解释见[授权与多租户](../10-authorization-and-multitenancy.md)。
 
 分页 Cursor 是 Base64URL 编码的 `{ createdAt, id }`，不是数据库 offset。按 `(createdAt DESC, id DESC)` 排序能在同一时间多条记录时保持稳定；Cursor 无效、过长或篡改返回 `400`。
 

@@ -16,7 +16,7 @@
 | 共享视图   | 另一位 Active Session 的用户 | 始终共享的昵称，加上用户明确开放的字段 | 避免默认泄漏             |
 | 头像字节流 | 本人或被授权的登录用户       | 处理后的 WebP 二进制                   | 不泄露 Bucket/Object Key |
 
-真正重要的边界不是“前端传了哪个 `userId`”，而是：**写入目标只能来自服务器验证后的 Session Actor**。因此本项目没有 `PATCH /profiles/:userId`；`PATCH /api/profile` 永远更新当前登录人。即使调用方在 JSON 中塞入 `userId`，Zod 的 `.strict()` 也会拒绝它。
+真正重要的边界不是“前端传了哪个 `userId`”，而是：**写入目标只能来自服务器验证后的 Session Actor**。因此本项目没有 `PATCH /profiles/:userId`；`PATCH /api/profile` 永远更新当前登录人。即使调用方在 JSON 中塞入 `userId`，Zod 的 `.strict()` 也会拒绝它。Actor、Tenant、Action、Resource 的完整授权模型见[授权与多租户](../10-authorization-and-multitenancy.md)。
 
 ```mermaid
 sequenceDiagram
