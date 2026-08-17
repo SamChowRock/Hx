@@ -4,26 +4,18 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 
-import { type Environment } from '../../../../libs/platform/src/config';
+import { loadEnvironment } from '../../../../libs/platform/src/config';
 
 import { OidcService } from './oidc.service';
 
 describe('OidcService', () => {
-  const environment: Environment = {
+  const environment = loadEnvironment({
     NODE_ENV: 'test',
-    DATABASE_URL: 'postgresql://scaffold:scaffold@localhost:5432/scaffold',
-    PORT: 3000,
-    LOG_LEVEL: 'info',
-    API_CORS_ORIGINS: '',
     SERVICE_NAME: 'test',
-    TRUST_PROXY: false,
     AUTH_SECRET: 'test-auth-secret-that-is-long-enough-for-validation',
-    SMTP_URL: 'smtp://localhost:1025',
-    EMAIL_FROM: 'no-reply@example.test',
-    SMS_PROVIDER: 'disabled',
     WEB_APP_ORIGIN: 'http://localhost:5173',
     API_PUBLIC_ORIGIN: 'http://localhost:3000',
-  };
+  });
 
   it('rejects an unconfigured provider before creating an OIDC transaction', async () => {
     const service = new OidcService({} as never);

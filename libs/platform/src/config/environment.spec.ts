@@ -7,6 +7,7 @@ describe('loadEnvironment', () => {
       PORT: 3000,
       LOG_LEVEL: 'info',
       TRUST_PROXY: false,
+      OBJECT_STORAGE_BUCKET: 'user-content',
     });
   });
 
@@ -77,7 +78,22 @@ describe('loadEnvironment', () => {
         WEB_APP_ORIGIN: 'https://app.example.test',
         API_PUBLIC_ORIGIN: 'https://api.example.test',
         API_CORS_ORIGINS: 'https://app.example.test',
+        OBJECT_STORAGE_ENDPOINT: 'https://objects.example.test',
+        OBJECT_STORAGE_ACCESS_KEY: 'production-access-key',
+        OBJECT_STORAGE_SECRET_KEY: 'production-secret-key',
       }),
     ).toMatchObject({ NODE_ENV: 'production' });
+  });
+
+  it('rejects local object-storage settings in deployed environments', () => {
+    expect(() =>
+      loadEnvironment({
+        NODE_ENV: 'production',
+        AUTH_SECRET: 'production-auth-secret-that-is-long-enough',
+        WEB_APP_ORIGIN: 'https://app.example.test',
+        API_PUBLIC_ORIGIN: 'https://api.example.test',
+        API_CORS_ORIGINS: 'https://app.example.test',
+      }),
+    ).toThrow(/OBJECT_STORAGE|object-storage/);
   });
 });

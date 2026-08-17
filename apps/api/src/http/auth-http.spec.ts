@@ -12,6 +12,9 @@ describe('authentication HTTP boundaries', () => {
     WEB_APP_ORIGIN: 'https://app.example.test',
     API_PUBLIC_ORIGIN: 'https://api.example.test',
     API_CORS_ORIGINS: 'https://app.example.test',
+    OBJECT_STORAGE_ENDPOINT: 'https://objects.example.test',
+    OBJECT_STORAGE_ACCESS_KEY: 'production-access-key',
+    OBJECT_STORAGE_SECRET_KEY: 'production-secret-key',
   });
 
   it('uses __Host cookies only when Secure cookies are available', () => {

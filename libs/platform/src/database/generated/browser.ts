@@ -23,6 +23,16 @@ export * from './enums.js';
  */
 export type User = Prisma.UserModel
 /**
+ * Model ProfileVisibility
+ *
+ */
+export type ProfileVisibility = Prisma.ProfileVisibilityModel
+/**
+ * Model NicknameChange
+ *
+ */
+export type NicknameChange = Prisma.NicknameChangeModel
+/**
  * Model ExternalIdentity
  * 
  */

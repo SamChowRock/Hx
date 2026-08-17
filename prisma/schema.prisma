@@ -19,6 +19,11 @@ enum ContactType {
   PHONE
 }
 
+enum ProfileFieldVisibility {
+  PRIVATE
+  AUTHENTICATED
+}
+
 enum OrganizationRole {
   OWNER
   ADMIN
@@ -46,19 +51,46 @@ enum OutboxStatus {
 }
 
 model User {
-  id              String       @id @default(uuid()) @db.Uuid
-  displayName     String       @map("display_name")
-  status          UserStatus   @default(ACTIVE)
-  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
-  contacts        UserContact[]
-  credential      PasswordCredential?
-  sessions        Session[]
-  memberships     Membership[]
+  id                 String              @id @default(uuid()) @db.Uuid
+  displayName        String              @map("display_name")
+  bio                String?
+  avatarObjectKey    String?             @map("avatar_object_key")
+  avatarUpdatedAt    DateTime?           @map("avatar_updated_at") @db.Timestamptz(6)
+  status             UserStatus          @default(ACTIVE)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  contacts           UserContact[]
+  credential         PasswordCredential?
+  sessions           Session[]
+  memberships        Membership[]
   externalIdentities ExternalIdentity[]
-  auditEvents     AuditEvent[] @relation("AuditActor")
+  nicknameChanges    NicknameChange[]
+  profileVisibility  ProfileVisibility?
+  auditEvents        AuditEvent[]        @relation("AuditActor")
 
   @@map("users")
+}
+
+model ProfileVisibility {
+  userId    String                 @id @map("user_id") @db.Uuid
+  bio       ProfileFieldVisibility @default(PRIVATE)
+  avatar    ProfileFieldVisibility @default(PRIVATE)
+  email     ProfileFieldVisibility @default(PRIVATE)
+  phone     ProfileFieldVisibility @default(PRIVATE)
+  updatedAt DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user      User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profile_visibility")
+}
+
+model NicknameChange {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  changedAt DateTime @default(now()) @map("changed_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, changedAt])
+  @@map("nickname_changes")
 }
 
 model ExternalIdentity {
@@ -77,16 +109,16 @@ model ExternalIdentity {
 }
 
 model OidcTransaction {
-  id                    String    @id @default(uuid()) @db.Uuid
-  providerKey           String    @map("provider_key")
-  stateHash             String    @unique @map("state_hash")
-  browserBindingHash    String    @map("browser_binding_hash")
-  codeVerifierCiphertext String   @map("code_verifier_ciphertext")
-  nonceCiphertext       String    @map("nonce_ciphertext")
-  returnTo              String    @map("return_to")
-  expiresAt             DateTime  @map("expires_at") @db.Timestamptz(6)
-  consumedAt            DateTime? @map("consumed_at") @db.Timestamptz(6)
-  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                     String    @id @default(uuid()) @db.Uuid
+  providerKey            String    @map("provider_key")
+  stateHash              String    @unique @map("state_hash")
+  browserBindingHash     String    @map("browser_binding_hash")
+  codeVerifierCiphertext String    @map("code_verifier_ciphertext")
+  nonceCiphertext        String    @map("nonce_ciphertext")
+  returnTo               String    @map("return_to")
+  expiresAt              DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt             DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([expiresAt])
   @@map("oidc_transactions")
@@ -124,12 +156,12 @@ model UserContact {
 }
 
 model PasswordCredential {
-  userId          String    @id @map("user_id") @db.Uuid
-  passwordHash    String    @map("password_hash")
+  userId            String   @id @map("user_id") @db.Uuid
+  passwordHash      String   @map("password_hash")
   passwordChangedAt DateTime @default(now()) @map("password_changed_at") @db.Timestamptz(6)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_credentials")
 }
@@ -227,12 +259,12 @@ model PhoneRegistrationIntent {
 }
 
 model PasswordResetIntent {
-  id              String    @id @default(uuid()) @db.Uuid
-  userId          String    @unique @map("user_id") @db.Uuid
-  tokenHash       String    @unique @map("token_hash")
-  expiresAt       DateTime  @map("expires_at") @db.Timestamptz(6)
-  consumedAt      DateTime? @map("consumed_at") @db.Timestamptz(6)
-  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @unique @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([expiresAt])
   @@map("password_reset_intents")

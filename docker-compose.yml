@@ -31,6 +31,12 @@ services:
       SMS_PROVIDER: disabled
       WEB_APP_ORIGIN: http://localhost:5173
       API_PUBLIC_ORIGIN: http://localhost:3000
+      OBJECT_STORAGE_ENDPOINT: http://minio:9000
+      OBJECT_STORAGE_REGION: us-east-1
+      OBJECT_STORAGE_ACCESS_KEY: minioadmin
+      OBJECT_STORAGE_SECRET_KEY: minioadmin
+      OBJECT_STORAGE_BUCKET: user-content
+      OBJECT_STORAGE_FORCE_PATH_STYLE: 'true'
     ports:
       - '3000:3000'
     depends_on:
@@ -42,6 +48,8 @@ services:
         condition: service_healthy
       redis-queue:
         condition: service_healthy
+      minio:
+        condition: service_started
     healthcheck:
       test:
         [

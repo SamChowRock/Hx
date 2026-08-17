@@ -35,7 +35,7 @@ jobs:
       - run: pnpm test
       - name: Run authentication and authorization E2E tests
         run: |
-          docker compose up --detach --wait postgres
+          docker compose up --detach --wait postgres minio
           pnpm prisma:migrate:deploy
           pnpm test:e2e
       - name: Clean up E2E database
