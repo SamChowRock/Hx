@@ -57,6 +57,21 @@ GET  /api/organizations/:organizationId/members
 POST /api/organizations/:organizationId/members
 ```
 
+### 用户 Profile
+
+```text
+GET    /api/profile
+PATCH  /api/profile
+PATCH  /api/profile/visibility
+PUT    /api/profile/avatar
+GET    /api/profile/avatar
+DELETE /api/profile/avatar
+GET    /api/profiles/:userId
+GET    /api/profiles/:userId/avatar
+```
+
+所有 Profile Route 都需要 Active Session；写入还需要允许的 Origin 与对应 Session 的 CSRF Token。`/profile` 是本人视图，`/profiles/:userId` 是字段 Allowlist 的共享视图；不要假设它们可以互换。
+
 ## 22.2 推荐阅读顺序
 
 1. `README.md`：启动和能力总览；
@@ -74,7 +89,11 @@ POST /api/organizations/:organizationId/members
 13. `apps/api/src/identity/oidc.service.ts`：标准 OIDC Authorization Code + PKCE；
 14. `apps/api/src/identity/wechat-oauth.service.ts`：微信网站扫码 OAuth Profile Adapter；
 15. `docs/adr/0004-wechat-website-oauth.md`：OpenID、UnionID、Token 和账号合并边界；
-16. `docs/adr/`、`docs/THREAT_MODEL.md`：其他决策背后的原因。
+16. `apps/api/src/profile/profile.controller.ts`：本人资料的 HTTP/CSRF/Multipart 边界；
+17. `apps/api/src/profile/profile.service.ts`：可见性、昵称行锁配额、审计和对象引用切换；
+18. `apps/api/src/profile/avatar-storage.service.ts`：Sharp 处理与私有 S3/MinIO Adapter；
+19. `test/profile.e2e-spec.ts`：隐私、并发、上传和拒绝路径；
+20. `docs/adr/`、`docs/THREAT_MODEL.md`：其他决策背后的原因。
 
 ## 22.3 最后记住的五条原则
 

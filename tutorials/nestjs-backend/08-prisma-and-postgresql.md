@@ -114,23 +114,25 @@ await database.$transaction(async (tx) => {
 
 ## 8.7 当前数据模型全景
 
-| 模型                      | 主要职责             | 关键约束/关系                                                   |
-| ------------------------- | -------------------- | --------------------------------------------------------------- |
-| `User`                    | 用户主体和状态       | 关联 Contact、Credential、Session、Membership、ExternalIdentity |
-| `UserContact`             | 已验证邮箱/手机号    | `(type, normalizedValue)` 唯一，可 retired                      |
-| `PasswordCredential`      | Argon2id 密码凭据    | 与 User 一对一，主键就是 `userId`                               |
-| `ExternalIdentity`        | OIDC/微信外部身份    | `(issuer, providerSubject)` 唯一，不按邮箱隐式合并              |
-| `Session`                 | 服务端浏览器会话     | `secretHash` 唯一，绝对/空闲过期，可撤销                        |
-| `Organization`            | 租户根实体           | 拥有 Membership、Project、AuditEvent                            |
-| `Membership`              | 用户和组织的角色关系 | `(userId, organizationId)` 唯一                                 |
-| `Project`                 | 租户内项目           | 外键 `organizationId`，按租户和时间索引                         |
-| `RegistrationIntent`      | 邮箱注册状态机       | 邮箱/Token Hash 唯一，一次性消费                                |
-| `PhoneRegistrationIntent` | 手机 OTP 状态机      | 挑战、失败次数、发送窗口、完成 Token                            |
-| `PasswordResetIntent`     | 密码重置状态机       | 每用户一条有效记录，一次性 Token                                |
-| `OidcTransaction`         | OIDC 临时事务        | State Hash、浏览器绑定、加密 PKCE/Nonce                         |
-| `OAuthProfileTransaction` | 微信 OAuth 临时事务  | State Hash、浏览器绑定、Return URL、过期和一次性消费            |
-| `AuditEvent`              | 安全/业务审计        | 按租户、Actor 和时间索引                                        |
-| `OutboxEvent`             | 可靠异步副作用       | 状态、尝试次数、可用/锁定/投递时间                              |
+| 模型                      | 主要职责                          | 关键约束/关系                                                                          |
+| ------------------------- | --------------------------------- | -------------------------------------------------------------------------------------- |
+| `User`                    | 用户主体、状态与 Profile 基础字段 | 关联 Contact、Credential、Session、Membership、ExternalIdentity；保存 bio/私有头像引用 |
+| `UserContact`             | 已验证邮箱/手机号                 | `(type, normalizedValue)` 唯一，可 retired                                             |
+| `PasswordCredential`      | Argon2id 密码凭据                 | 与 User 一对一，主键就是 `userId`                                                      |
+| `ExternalIdentity`        | OIDC/微信外部身份                 | `(issuer, providerSubject)` 唯一，不按邮箱隐式合并                                     |
+| `Session`                 | 服务端浏览器会话                  | `secretHash` 唯一，绝对/空闲过期，可撤销                                               |
+| `Organization`            | 租户根实体                        | 拥有 Membership、Project、AuditEvent                                                   |
+| `Membership`              | 用户和组织的角色关系              | `(userId, organizationId)` 唯一                                                        |
+| `Project`                 | 租户内项目                        | 外键 `organizationId`，按租户和时间索引                                                |
+| `RegistrationIntent`      | 邮箱注册状态机                    | 邮箱/Token Hash 唯一，一次性消费                                                       |
+| `PhoneRegistrationIntent` | 手机 OTP 状态机                   | 挑战、失败次数、发送窗口、完成 Token                                                   |
+| `PasswordResetIntent`     | 密码重置状态机                    | 每用户一条有效记录，一次性 Token                                                       |
+| `OidcTransaction`         | OIDC 临时事务                     | State Hash、浏览器绑定、加密 PKCE/Nonce                                                |
+| `OAuthProfileTransaction` | 微信 OAuth 临时事务               | State Hash、浏览器绑定、Return URL、过期和一次性消费                                   |
+| `NicknameChange`          | 昵称滚动窗口配额事实              | `(userId, changedAt)` 索引；不保存历史昵称文本                                         |
+| `ProfileVisibility`       | Profile 字段隐私策略              | 与 User 一对一；四个字段默认 `PRIVATE`                                                 |
+| `AuditEvent`              | 安全/业务审计                     | 按租户、Actor 和时间索引                                                               |
+| `OutboxEvent`             | 可靠异步副作用                    | 状态、尝试次数、可用/锁定/投递时间                                                     |
 
 主要关系可以画成：
 
@@ -140,6 +142,8 @@ erDiagram
   USER ||--o| PASSWORD_CREDENTIAL : owns
   USER ||--o{ EXTERNAL_IDENTITY : links
   USER ||--o{ SESSION : opens
+  USER ||--o{ NICKNAME_CHANGE : limits
+  USER ||--o| PROFILE_VISIBILITY : controls
   USER ||--o{ MEMBERSHIP : joins
   ORGANIZATION ||--o{ MEMBERSHIP : contains
   ORGANIZATION ||--o{ PROJECT : owns
@@ -152,6 +156,8 @@ Intent 与 Outbox 没有强制外键，是因为它们代表跨步骤状态和�
 `OidcTransaction` 和 `OAuthProfileTransaction` 被有意拆开。前者必须保存加密的 PKCE Verifier 与 Nonce，后者用于微信这类“用 Code 换 Access Token，再读取 Profile”的非 OIDC 流程，并不具备 ID Token、Discovery、Issuer/Audience/Nonce 等标准语义。如果为了少一张表而把两者硬塞进同一个通用模型，字段会大量可空，代码也容易误以为微信完成了 OIDC 等价校验。
 
 `OAuthProfileTransaction` 只保存 State、浏览器绑定和 Return URL 的服务端状态，不保存微信 Access Token/Refresh Token。Token 只在 Callback 内存中短暂存在，解析出持久身份后立即丢弃。登录身份最终落在 `ExternalIdentity`：Issuer 使用网站 AppID 形成作用域，Subject 使用 `openid:<OpenID>`。
+
+Profile 的两次 Migration 展示了一个安全上线技巧：先给 `users` 增加可空的 `bio`、`avatar_object_key` 和 `avatar_updated_at`，再新建带 `PRIVATE` 默认值的一对一可见性表。旧用户没有 `profile_visibility` Row 时，Service 也按全私有解释。这样可以先发布读路径，而无需为了“每用户一行默认设置”进行一次大规模同步回填。详细的行锁、配额和对象存储一致性见 [Profile 专题](profiles/README.md)。
 
 ## 8.8 `select`、`include` 和 N+1
 

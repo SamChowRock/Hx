@@ -24,9 +24,10 @@
 2. [NestJS 核心心智模型](04-nestjs-mental-model.md)
 3. [启动、全局配置与环境变量](06-bootstrap-and-config.md)
 4. [认证](09-authentication.md)
-5. [授权与多租户](10-authorization-and-multitenancy.md)
-6. [Tasks 完整实战](workshop/README.md)
-7. [测试](15-testing.md)
+5. [用户 Profile：隐私、并发配额与私有头像](profiles/README.md)
+6. [授权与多租户](10-authorization-and-multitenancy.md)
+7. [Tasks 完整实战](workshop/README.md)
+8. [测试](15-testing.md)
 
 ### 路线 C：补齐生产级后端能力
 
@@ -82,6 +83,7 @@
 - [09｜认证：Cookie Session、OIDC、微信扫码与密码安全](09-authentication.md)
 - [09A｜认证专题：微信开放平台网站扫码 OAuth](authentication/README.md)
 - [10｜授权、RBAC 与多租户隔离](10-authorization-and-multitenancy.md)
+- [10A｜用户 Profile 专题：隐私、并发配额与私有头像](profiles/README.md)
 
 ### 第四部分：完整业务研发
 

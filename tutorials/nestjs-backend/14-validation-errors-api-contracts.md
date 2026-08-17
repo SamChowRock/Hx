@@ -99,7 +99,9 @@ const updateSchema = z
 
 ## 14.6 建立稳定应用错误码
 
-当前 Filter 已有稳定 Shape，但 `title/detail` 仍是自然语言。可以定义领域错误：
+当前 `ProblemDetailsFilter` 已能透传领域错误的可选 `code` 和 `retryAt`，并在有 `retryAt` 时生成 HTTP `Retry-After`。Profile 的昵称滚动配额就是例子：超过三次时返回 `429`、`NICKNAME_CHANGE_LIMIT` 和下一次允许时间。前端必须根据稳定 `code` 和时间字段渲染，而不是匹配自然语言 `detail`。
+
+新增领域错误时可以定义：
 
 ```ts
 export class ApplicationError extends Error {

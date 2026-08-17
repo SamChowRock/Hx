@@ -62,6 +62,8 @@ Pino 配置会脱敏 Authorization、Cookie、CSRF Token、密码、验证码、
 - 禁止微信与 OIDC 使用相同 Provider Key；
 - 启用 Twilio 时要求完整凭据。
 
+Profile 的私有头像还使用一组 S3 兼容对象存储变量：`OBJECT_STORAGE_ENDPOINT`、Region、Access Key、Secret Key、Bucket 和 Path-style 开关。development/test 可用本地 MinIO 默认值；staging/production 必须使用 HTTPS Endpoint，且不能复用 `minioadmin` 本地凭据。这个差异是安全边界：本地自动建 Bucket 方便实验，生产应在部署前由基础设施和访问策略显式创建私有 Bucket。
+
 新增配置的正确流程是：
 
 1. 在 `environmentSchema` 中定义、转换和校验；

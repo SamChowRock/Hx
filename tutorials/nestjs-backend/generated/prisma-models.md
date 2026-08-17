@@ -8,9 +8,9 @@
 
 - Datasource Provider：`postgresql`
 - Client Generator：`prisma-client`
-- Models：15
-- Enums：6
-- Migrations：7
+- Models：17
+- Enums：7
+- Migrations：9
 
 ## Enums
 
@@ -24,6 +24,11 @@
 
 - `EMAIL`
 - `PHONE`
+
+### ProfileFieldVisibility
+
+- `PRIVATE`
+- `AUTHENTICATED`
 
 ### OrganizationRole
 
@@ -62,6 +67,9 @@ Model Directives：`@@map("users")`
 | --- | --- | --- |
 | `id` | `String` | @id @default(uuid()) @db.Uuid |
 | `displayName` | `String` | @map("display_name") |
+| `bio` | `String?` | — |
+| `avatarObjectKey` | `String?` | @map("avatar_object_key") |
+| `avatarUpdatedAt` | `DateTime?` | @map("avatar_updated_at") @db.Timestamptz(6) |
 | `status` | `UserStatus` | @default(ACTIVE) |
 | `createdAt` | `DateTime` | @default(now()) @map("created_at") @db.Timestamptz(6) |
 | `updatedAt` | `DateTime` | @updatedAt @map("updated_at") @db.Timestamptz(6) |
@@ -70,7 +78,36 @@ Model Directives：`@@map("users")`
 | `sessions` | `Session[]` | — |
 | `memberships` | `Membership[]` | — |
 | `externalIdentities` | `ExternalIdentity[]` | — |
+| `nicknameChanges` | `NicknameChange[]` | — |
+| `profileVisibility` | `ProfileVisibility?` | — |
 | `auditEvents` | `AuditEvent[]` | @relation("AuditActor") |
+
+### ProfileVisibility → `profile_visibility`
+
+Model Directives：`@@map("profile_visibility")`
+
+<!-- prettier-ignore -->
+| Field | Prisma Type | Attributes / Relation |
+| --- | --- | --- |
+| `userId` | `String` | @id @map("user_id") @db.Uuid |
+| `bio` | `ProfileFieldVisibility` | @default(PRIVATE) |
+| `avatar` | `ProfileFieldVisibility` | @default(PRIVATE) |
+| `email` | `ProfileFieldVisibility` | @default(PRIVATE) |
+| `phone` | `ProfileFieldVisibility` | @default(PRIVATE) |
+| `updatedAt` | `DateTime` | @updatedAt @map("updated_at") @db.Timestamptz(6) |
+| `user` | `User` | @relation(fields: [userId], references: [id], onDelete: Cascade) |
+
+### NicknameChange → `nickname_changes`
+
+Model Directives：`@@index([userId, changedAt])`、`@@map("nickname_changes")`
+
+<!-- prettier-ignore -->
+| Field | Prisma Type | Attributes / Relation |
+| --- | --- | --- |
+| `id` | `String` | @id @default(uuid()) @db.Uuid |
+| `userId` | `String` | @map("user_id") @db.Uuid |
+| `changedAt` | `DateTime` | @default(now()) @map("changed_at") @db.Timestamptz(6) |
+| `user` | `User` | @relation(fields: [userId], references: [id], onDelete: Cascade) |
 
 ### ExternalIdentity → `external_identities`
 
@@ -320,3 +357,5 @@ Model Directives：`@@index([status, availableAt])`、`@@map("outbox_events")`
 | `20260812120000_harden_sessions_add_outbox` | [migration.sql](../../../prisma/migrations/20260812120000_harden_sessions_add_outbox/migration.sql) |
 | `20260812123000_add_phone_registration` | [migration.sql](../../../prisma/migrations/20260812123000_add_phone_registration/migration.sql) |
 | `20260814090000_add_oauth_profile_transactions` | [migration.sql](../../../prisma/migrations/20260814090000_add_oauth_profile_transactions/migration.sql) |
+| `20260816100000_add_user_profiles` | [migration.sql](../../../prisma/migrations/20260816100000_add_user_profiles/migration.sql) |
+| `20260817100000_add_profile_visibility` | [migration.sql](../../../prisma/migrations/20260817100000_add_profile_visibility/migration.sql) |

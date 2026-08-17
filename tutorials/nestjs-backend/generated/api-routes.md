@@ -17,6 +17,7 @@
 | AuthorizationModule | [apps/api/src/authorization/authorization.module.ts](../../../apps/api/src/authorization/authorization.module.ts) |
 | IdentityModule | [apps/api/src/identity/identity.module.ts](../../../apps/api/src/identity/identity.module.ts) |
 | OrganizationsModule | [apps/api/src/organizations/organizations.module.ts](../../../apps/api/src/organizations/organizations.module.ts) |
+| ProfileModule | [apps/api/src/profile/profile.module.ts](../../../apps/api/src/profile/profile.module.ts) |
 | ProjectsModule | [apps/api/src/projects/projects.module.ts](../../../apps/api/src/projects/projects.module.ts) |
 
 ## Routes
@@ -50,3 +51,11 @@
 | `POST` | `/api/organizations/:organizationId/members` | OrganizationsController | [apps/api/src/organizations/organizations.controller.ts](../../../apps/api/src/organizations/organizations.controller.ts) |
 | `GET` | `/api/organizations/:organizationId/projects` | ProjectsController | [apps/api/src/projects/projects.controller.ts](../../../apps/api/src/projects/projects.controller.ts) |
 | `POST` | `/api/organizations/:organizationId/projects` | ProjectsController | [apps/api/src/projects/projects.controller.ts](../../../apps/api/src/projects/projects.controller.ts) |
+| `GET` | `/api/profile` | ProfileController | [apps/api/src/profile/profile.controller.ts](../../../apps/api/src/profile/profile.controller.ts) |
+| `PATCH` | `/api/profile` | ProfileController | [apps/api/src/profile/profile.controller.ts](../../../apps/api/src/profile/profile.controller.ts) |
+| `DELETE` | `/api/profile/avatar` | ProfileController | [apps/api/src/profile/profile.controller.ts](../../../apps/api/src/profile/profile.controller.ts) |
+| `GET` | `/api/profile/avatar` | ProfileController | [apps/api/src/profile/profile.controller.ts](../../../apps/api/src/profile/profile.controller.ts) |
+| `PUT` | `/api/profile/avatar` | ProfileController | [apps/api/src/profile/profile.controller.ts](../../../apps/api/src/profile/profile.controller.ts) |
+| `PATCH` | `/api/profile/visibility` | ProfileController | [apps/api/src/profile/profile.controller.ts](../../../apps/api/src/profile/profile.controller.ts) |
+| `GET` | `/api/profiles/:userId` | UserProfilesController | [apps/api/src/profile/user-profiles.controller.ts](../../../apps/api/src/profile/user-profiles.controller.ts) |
+| `GET` | `/api/profiles/:userId/avatar` | UserProfilesController | [apps/api/src/profile/user-profiles.controller.ts](../../../apps/api/src/profile/user-profiles.controller.ts) |

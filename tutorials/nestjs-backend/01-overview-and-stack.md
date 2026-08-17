@@ -42,25 +42,25 @@ flowchart LR
 
 学习现有项目时，必须区分“代码已经具备的能力”和“架构蓝图中的目标”。
 
-| 能力                           | 当前状态                     | 从哪里看                            |
-| ------------------------------ | ---------------------------- | ----------------------------------- |
-| HTTP API、OpenAPI 入口         | 已实现                       | `apps/api/src/main.ts`              |
-| 邮箱/手机号注册、密码登录      | 已实现                       | `apps/api/src/identity/`            |
-| OIDC Authorization Code + PKCE | 已实现，可选配置             | `oidc.service.ts`                   |
-| 微信网站扫码 OAuth             | 已实现，可选配置             | `wechat-oauth.service.ts`           |
-| PostgreSQL Session             | 已实现                       | `Session` 模型、`IdentityService`   |
-| 多租户 RBAC                    | 已实现基础版                 | `authorization.service.ts`          |
-| Project 读写                   | 已实现                       | `apps/api/src/projects/`            |
-| 审计事件                       | 已实现基础写入               | `AuditEvent` 模型                   |
-| PostgreSQL Outbox Worker       | 已实现                       | `apps/worker/src/worker.service.ts` |
-| 邮件投递                       | 已实现                       | Nodemailer + Mailpit/SMTP           |
-| 短信投递                       | 已实现，可选 Twilio          | Worker 的 `sendSms`                 |
-| Redis 缓存                     | Compose 已准备，业务尚未接入 | `redis-cache` 服务                  |
-| BullMQ                         | Queue Redis 已准备，尚未接入 | `redis-queue` 服务                  |
-| MinIO 文件上传与扫描           | 基础服务已准备，业务尚未实现 | `minio` 服务                        |
-| OpenTelemetry、生产部署自动化  | 蓝图目标，尚未实现           | `BACKEND_SCAFFOLD_BLUEPRINT.md`     |
+| 能力                           | 当前状态                                  | 从哪里看                            |
+| ------------------------------ | ----------------------------------------- | ----------------------------------- |
+| HTTP API、OpenAPI 入口         | 已实现                                    | `apps/api/src/main.ts`              |
+| 邮箱/手机号注册、密码登录      | 已实现                                    | `apps/api/src/identity/`            |
+| OIDC Authorization Code + PKCE | 已实现，可选配置                          | `oidc.service.ts`                   |
+| 微信网站扫码 OAuth             | 已实现，可选配置                          | `wechat-oauth.service.ts`           |
+| PostgreSQL Session             | 已实现                                    | `Session` 模型、`IdentityService`   |
+| 多租户 RBAC                    | 已实现基础版                              | `authorization.service.ts`          |
+| Project 读写                   | 已实现                                    | `apps/api/src/projects/`            |
+| 审计事件                       | 已实现基础写入                            | `AuditEvent` 模型                   |
+| PostgreSQL Outbox Worker       | 已实现                                    | `apps/worker/src/worker.service.ts` |
+| 邮件投递                       | 已实现                                    | Nodemailer + Mailpit/SMTP           |
+| 短信投递                       | 已实现，可选 Twilio                       | Worker 的 `sendSms`                 |
+| Redis 缓存                     | Compose 已准备，业务尚未接入              | `redis-cache` 服务                  |
+| BullMQ                         | Queue Redis 已准备，尚未接入              | `redis-queue` 服务                  |
+| MinIO 私有头像对象存储         | Profile 已使用；通用文件上传/扫描仍待实现 | `minio` 服务、`ProfileModule`       |
+| OpenTelemetry、生产部署自动化  | 蓝图目标，尚未实现                        | `BACKEND_SCAFFOLD_BLUEPRINT.md`     |
 
-这意味着你可以直接学习真实的认证、授权、事务和 Worker；但不要把 Compose 中出现 Redis/MinIO 误认为业务代码已经使用了它们。
+这意味着你可以直接学习真实的认证、授权、事务、Worker 和私有头像对象存储；但不要把 Compose 中出现 Redis/MinIO 误认为通用文件上传、病毒扫描或 CDN 分发等能力已经实现。
 
 ## 1.3 为什么选择这套技术栈
 

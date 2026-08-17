@@ -34,3 +34,9 @@
 | `WECHAT_PROVIDER_KEY` | `<empty; optional or provider-dependent>` | Set all three values after a WeChat Open Platform website application is approved. |
 | `WECHAT_APP_ID` | `<empty; optional or provider-dependent>` | — |
 | `WECHAT_APP_SECRET` | `<empty; inject securely when enabled>` | — |
+| `OBJECT_STORAGE_ENDPOINT` | `http://localhost:9000` | S3-compatible private storage. Replace these values and use HTTPS outside local development. |
+| `OBJECT_STORAGE_REGION` | `us-east-1` | — |
+| `OBJECT_STORAGE_ACCESS_KEY` | `minioadmin` | — |
+| `OBJECT_STORAGE_SECRET_KEY` | `<redacted>` | — |
+| `OBJECT_STORAGE_BUCKET` | `user-content` | — |
+| `OBJECT_STORAGE_FORCE_PATH_STYLE` | `true` | — |

@@ -12,7 +12,7 @@
 | Service | Image / Build Target | 发布端口 | depends_on | Volume Mount | 运行保护 |
 | --- | --- | --- | --- | --- | --- |
 | `migration` | nestjs-production-scaffold-migration:local; target=migration | 仅容器网络 | postgres | — | — |
-| `api` | nestjs-production-scaffold:local; target=runtime | 3000:3000 | migration, postgres, redis-cache, redis-queue | — | healthcheck, read-only |
+| `api` | nestjs-production-scaffold:local; target=runtime | 3000:3000 | migration, postgres, redis-cache, redis-queue, minio | — | healthcheck, read-only |
 | `worker` | nestjs-production-scaffold:local; target=runtime | 仅容器网络 | migration, postgres, redis-cache, redis-queue, mailpit | — | read-only |
 | `postgres` | postgres:17-alpine | 5432:5432 | — | postgres-data:/var/lib/postgresql/data | healthcheck |
 | `redis-cache` | redis:7-alpine | 6379:6379 | — | — | healthcheck |

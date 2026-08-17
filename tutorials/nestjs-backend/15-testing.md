@@ -19,10 +19,10 @@ pnpm test:watch
 pnpm test:e2e
 ```
 
-E2E 需要可用 PostgreSQL 和已执行 Migration：
+E2E 需要可用 PostgreSQL、MinIO 和已执行 Migration。Profile E2E 会真实上传、读取并删除私有头像对象：
 
 ```bash
-docker compose up --detach --wait postgres
+docker compose up --detach --wait postgres minio
 pnpm prisma:migrate:deploy
 pnpm test:e2e
 ```
@@ -66,6 +66,8 @@ E2E 用 `Test.createTestingModule({ imports: [AppModule] })` 启动真实 Nest �
 - Prisma Relation、Constraint 和 Transaction；
 - 跨租户访问是否被拒绝；
 - 最终数据库状态是否正确。
+
+Profile E2E 还验证一个很好的安全测试组合：第二个登录用户默认只读到昵称；显式开启字段可见性后才看得到对应资料；四个并发昵称修改恰好只有三个成功；伪装成图片的 SVG 被拒绝；API Response 不暴露私有 Object Key。这里的“拒绝路径 + 最终状态”比只断言 200 更有价值。
 
 Tasks 至少应写以下 E2E：
 

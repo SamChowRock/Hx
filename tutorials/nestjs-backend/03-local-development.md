@@ -85,6 +85,8 @@ pnpm dev:worker
 
 `dev:api` 和 `dev:worker` 使用 `tsx watch`，修改 TypeScript 后自动重启。这里不要同时启动 Compose 里的 `api`、`worker`，否则会出现端口冲突，或两个 Worker 同时消费 Outbox。
 
+Profile 头像功能依赖 `minio`；不要在只启动 PostgreSQL 的情况下测试上传。开发环境默认会使用 `user-content` Bucket，并可由服务自动创建。打开 `http://localhost:9001` 可以观察对象，但不要手工删除仍被 `users.avatar_object_key` 引用的对象。
+
 ## 3.4 本地服务端口
 
 | 服务          | 地址/端口        | 用途                      |

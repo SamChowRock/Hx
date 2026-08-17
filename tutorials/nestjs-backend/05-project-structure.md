@@ -10,6 +10,7 @@ apps/
     configure-application.ts   # Helmet、Cookie、错误过滤器、/api 前缀
     identity/                  # 注册、Session、密码、OIDC、微信 OAuth
     authorization/             # ActorContext、RBAC、多租户授权
+    profile/                   # 本人 Profile、字段隐私、头像处理与私有对象存储
     organizations/             # 成员读取与添加
     projects/                  # Project 示例业务
     health/                    # liveness / readiness
@@ -63,6 +64,8 @@ NestFactory.createApplicationContext(WorkerModule);
 3. 它是否需要独立的 Controller、数据模型或后台消费者？
 
 例如“给项目新增任务”应放到 `tasks` 功能模块；不要创建一个包罗所有数据库操作的 `CommonService`。
+
+`profile/` 是另一个好例子：`ProfileController` 只负责 Cookie、Origin、CSRF、Multipart 和 HTTP 缓存 Header；`ProfileService` 负责本人/他人可见性、行锁、昵称配额和审计；`AvatarStorageService` 是唯一接触 S3/MinIO 的基础设施适配器。把三者混成 Controller 会让隐私规则和失败清理难以测试。
 
 ## 5.3 阅读陌生模块的固定方法
 
