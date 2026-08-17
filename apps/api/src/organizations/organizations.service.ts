@@ -49,6 +49,10 @@ export class OrganizationsService {
     }
 
     return this.database.$transaction(async (tx) => {
+      const organization = await tx.organization.findUniqueOrThrow({
+        where: { id: organizationId },
+        select: { name: true },
+      });
       const membership = await tx.membership.create({
         data: { userId: contact.userId, organizationId, role },
       });
@@ -59,6 +63,20 @@ export class OrganizationsService {
           action: 'organization.member.added',
           targetType: 'membership',
           targetId: membership.id,
+        },
+      });
+      await tx.outboxEvent.create({
+        data: {
+          type: 'notification.create',
+          payload: {
+            userId: contact.userId,
+            kind: 'organization.member.added',
+            severity: 'SUCCESS',
+            title: 'Organization access granted',
+            body: `You were added to ${organization.name} as ${role}.`,
+            actionUrl: `/organizations/${organizationId}`,
+            dedupeKey: `organization.member.added:${membership.id}`,
+          },
         },
       });
       return membership;

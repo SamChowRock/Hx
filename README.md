@@ -1,6 +1,6 @@
 # NestJS Production Scaffold
 
-This repository is a production-oriented NestJS modular-monolith scaffold. It now includes the Milestone 0 platform foundation plus the core Milestone 1 identity, tenancy, and authorization path: PostgreSQL migrations, verified email and E.164 phone registration, password, OIDC, and WeChat website QR sign-in, opaque server sessions, CSRF/origin defenses, user profiles with concurrency-safe nickname quotas and private processed avatars, organizations and memberships, tenant-scoped projects, audit events, and transactional email/SMS delivery through the Worker.
+This repository is a production-oriented NestJS modular-monolith scaffold. It now includes the Milestone 0 platform foundation plus the core Milestone 1 identity, tenancy, and authorization path: PostgreSQL migrations, verified email and E.164 phone registration, password, OIDC, and WeChat website QR sign-in, opaque server sessions, CSRF/origin defenses, user profiles with concurrency-safe nickname quotas and private processed avatars, organizations and memberships, tenant-scoped projects, audit events, durable in-app notifications with SSE reminders and unread/read controls, and transactional email/SMS/notification delivery through the Worker.
 
 The project decisions that guide this scaffold are in `docs/REFERENCE_PRODUCT.md`, `docs/API_CONVENTIONS.md`, `docs/THREAT_MODEL.md`, and `docs/adr/`. Milestone 0 acceptance evidence is recorded in `docs/MILESTONE_0_ACCEPTANCE.md`.
 
@@ -31,10 +31,19 @@ Open `http://localhost:3000/docs` for OpenAPI and use these endpoints:
 - `PATCH /api/profile/visibility`
 - `PUT /api/profile/avatar`
 - `GET /api/profiles/:userId`
+- `GET /api/notifications`
+- `GET /api/notifications/unread-count`
+- `GET /api/notifications/stream`
+- `PATCH /api/notifications/:notificationId/read`
+- `PATCH /api/notifications/read-all`
+- `DELETE /api/notifications/:notificationId`
+- `DELETE /api/notifications/read`
 
 Email messages appear in Mailpit at `http://localhost:8025`. Phone registration is disabled by default; set `SMS_PROVIDER=twilio` and all three `TWILIO_*` values in `.env` to enable real SMS delivery. The API always commits delivery requests to PostgreSQL first, and the Worker claims them with bounded retries.
 
 Profile access is session-bound. Active users may read another Active user's allowlisted shared profile, while the target independently opts their biography, avatar, verified primary email, and verified primary phone into `AUTHENTICATED` visibility; all default to `PRIVATE`. Profile and visibility writes always target the authenticated user's own account. Nicknames contain at most 16 Unicode code points and can be changed at most three times per rolling 30 days. Avatars use the private `user-content` bucket in local MinIO; the API validates and re-encodes uploads before storage. See `docs/USER_PROFILE_MODULE.md` for the authorization, privacy, API, nickname, and avatar contracts.
+
+Notifications are durable PostgreSQL records scoped to the current session actor. The module provides cursor pagination, active unread counts, mark-one/mark-all read, dismiss/clear-read operations, and recipient-only SSE updates. Organization membership changes produce idempotent notifications through the transactional outbox. See `docs/USER_NOTIFICATIONS_MODULE.md` for API, delivery, frontend reconciliation, and authorization contracts.
 
 WeChat login is disabled by default. After a WeChat Open Platform website application and its callback domain are approved, set `WECHAT_PROVIDER_KEY=wechat`, `WECHAT_APP_ID`, and `WECHAT_APP_SECRET`. Register `<API_PUBLIC_ORIGIN>/api/auth/external/wechat/callback` as the callback URL (for example, `https://api.example.com/api/auth/external/wechat/callback`; use the actual configured provider key). The integration is website QR login, not Official Account or Mini Program login; see ADR 0004 for identity and security boundaries.
 
@@ -79,13 +88,13 @@ This workspace uses Husky for pre-commit formatting, linting, and type checks. `
 | MinIO API / console | `localhost:9000` / `http://localhost:9001` |
 | Mailpit SMTP / UI   | `localhost:1025` / `http://localhost:8025` |
 
-The current Worker processes PostgreSQL transactional-outbox email and SMS events. BullMQ generalization, the object-storage quarantine pipeline, provider-specific account linking/contact management, and production deployment automation remain later roadmap work.
+The current Worker processes PostgreSQL transactional-outbox email, SMS, and in-app notification events. BullMQ generalization, external push channels, notification retention/preferences, the object-storage quarantine pipeline, provider-specific account linking/contact management, and production deployment automation remain later roadmap work.
 
 ---
 
 # NestJS 生产级脚手架（中文版）
 
-本仓库是一套面向生产环境的 NestJS 模块化单体脚手架。目前已包含 Milestone 0 平台基础，以及 Milestone 1 的核心身份、租户和授权链路：PostgreSQL Migration、经过验证的邮箱和 E.164 手机号注册、密码、OIDC 与微信网站扫码登录、不透明服务端 Session、CSRF/Origin 防护、具有并发安全昵称配额与私有处理头像的用户 Profile、Organization 与 Membership、租户范围 Project、Audit Event，以及由 Worker 通过事务 Outbox 完成的邮件/SMS 投递。
+本仓库是一套面向生产环境的 NestJS 模块化单体脚手架。目前已包含 Milestone 0 平台基础，以及 Milestone 1 的核心身份、租户和授权链路：PostgreSQL Migration、经过验证的邮箱和 E.164 手机号注册、密码、OIDC 与微信网站扫码登录、不透明服务端 Session、CSRF/Origin 防护、具有并发安全昵称配额与私有处理头像的用户 Profile、Organization 与 Membership、租户范围 Project、Audit Event、具有 SSE 实时提醒与未读/已读控制的持久化站内通知，以及由 Worker 通过事务 Outbox 完成的邮件/SMS/通知投递。
 
 指导本脚手架的项目决策记录在 `docs/REFERENCE_PRODUCT.md`、`docs/API_CONVENTIONS.md`、`docs/THREAT_MODEL.md` 和 `docs/adr/` 中。Milestone 0 的验收证据记录在 `docs/MILESTONE_0_ACCEPTANCE.md` 中。
 
@@ -116,10 +125,19 @@ docker compose up --build -d
 - `PATCH /api/profile/visibility`
 - `PUT /api/profile/avatar`
 - `GET /api/profiles/:userId`
+- `GET /api/notifications`
+- `GET /api/notifications/unread-count`
+- `GET /api/notifications/stream`
+- `PATCH /api/notifications/:notificationId/read`
+- `PATCH /api/notifications/read-all`
+- `DELETE /api/notifications/:notificationId`
+- `DELETE /api/notifications/read`
 
 邮件可在 Mailpit 的 `http://localhost:8025` 中查看。手机注册默认关闭；在 `.env` 中设置 `SMS_PROVIDER=twilio` 以及三个完整的 `TWILIO_*` 配置后，才会启用真实 SMS 投递。API 总是先把投递请求提交到 PostgreSQL，再由 Worker 领取并执行有限次数重试。
 
 Profile 访问绑定 Session。Active 用户可以读取其他 Active 用户经过 Allowlist 的共享资料；目标用户可以分别把简介、头像、已验证 Primary 邮箱和已验证 Primary 手机号设为 `AUTHENTICATED`，所有设置默认均为 `PRIVATE`。资料和可见性写操作始终只能作用于当前登录用户本人。昵称最长 16 个 Unicode Code Point，在任意滚动 30 天内最多修改三次。头像在本地使用 MinIO 中的私有 `user-content` Bucket；API 会在存储前校验并重新编码头像。权限、隐私、API、昵称与头像契约见 `docs/USER_PROFILE_MODULE.md`。
+
+通知是存储在 PostgreSQL 中、严格限定为当前 Session Actor 的持久化记录。模块提供 Cursor 分页、有效未读数、单条/全部标记已读、单条清除/清除全部已读，以及只面向接收者的 SSE 更新。Organization Membership 变化会通过事务 Outbox 产生幂等通知。API、投递、前端对账与授权契约见 `docs/USER_NOTIFICATIONS_MODULE.md`。
 
 微信登录默认关闭。微信开放平台网站应用及其回调域名审核通过后，设置 `WECHAT_PROVIDER_KEY=wechat`、`WECHAT_APP_ID` 和 `WECHAT_APP_SECRET`。在微信开放平台登记 `<API_PUBLIC_ORIGIN>/api/auth/external/wechat/callback` 作为回调地址（例如 `https://api.example.com/api/auth/external/wechat/callback`；路径中的 Provider Key 应与实际配置一致）。本集成是网站扫码登录，不是公众号或小程序登录；身份与安全边界见 ADR 0004。
 
@@ -164,4 +182,4 @@ pnpm test:e2e
 | MinIO API / 控制台  | `localhost:9000` / `http://localhost:9001` |
 | Mailpit SMTP / 界面 | `localhost:1025` / `http://localhost:8025` |
 
-当前 Worker 会处理 PostgreSQL 事务 Outbox 中的邮件和 SMS Event。BullMQ 通用化、对象存储隔离扫描流程、Provider 特定的账号绑定/联系方式管理，以及生产部署自动化仍属于后续路线图。
+当前 Worker 会处理 PostgreSQL 事务 Outbox 中的邮件、SMS 和站内通知 Event。BullMQ 通用化、外部推送 Channel、通知保留/偏好设置、对象存储隔离扫描流程、Provider 特定的账号绑定/联系方式管理，以及生产部署自动化仍属于后续路线图。

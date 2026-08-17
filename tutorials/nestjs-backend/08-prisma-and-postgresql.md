@@ -131,6 +131,7 @@ await database.$transaction(async (tx) => {
 | `OAuthProfileTransaction` | 微信 OAuth 临时事务               | State Hash、浏览器绑定、Return URL、过期和一次性消费                                   |
 | `NicknameChange`          | 昵称滚动窗口配额事实              | `(userId, changedAt)` 索引；不保存历史昵称文本                                         |
 | `ProfileVisibility`       | Profile 字段隐私策略              | 与 User 一对一；四个字段默认 `PRIVATE`                                                 |
+| `Notification`            | 用户站内收件箱                    | `(userId, dedupeKey)` 唯一；用户范围分页/未读/过期索引                                 |
 | `AuditEvent`              | 安全/业务审计                     | 按租户、Actor 和时间索引                                                               |
 | `OutboxEvent`             | 可靠异步副作用                    | 状态、尝试次数、可用/锁定/投递时间                                                     |
 
@@ -144,6 +145,7 @@ erDiagram
   USER ||--o{ SESSION : opens
   USER ||--o{ NICKNAME_CHANGE : limits
   USER ||--o| PROFILE_VISIBILITY : controls
+  USER ||--o{ NOTIFICATION : receives
   USER ||--o{ MEMBERSHIP : joins
   ORGANIZATION ||--o{ MEMBERSHIP : contains
   ORGANIZATION ||--o{ PROJECT : owns

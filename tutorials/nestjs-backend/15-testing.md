@@ -69,6 +69,8 @@ E2E 用 `Test.createTestingModule({ imports: [AppModule] })` 启动真实 Nest �
 
 Profile E2E 还验证一个很好的安全测试组合：第二个登录用户默认只读到昵称；显式开启字段可见性后才看得到对应资料；四个并发昵称修改恰好只有三个成功；伪装成图片的 SVG 被拒绝；API Response 不暴露私有 Object Key。这里的“拒绝路径 + 最终状态”比只断言 200 更有价值。
 
+通知 E2E 应覆盖 SSE 初始快照/重连后的回源、跨用户 Notification ID 返回 404、过期消息不进入列表或未读数，以及 Outbox 重试仍只生成一条收件箱记录。不要把 SSE 当作唯一事实；测试必须同时断言数据库列表和未读数。
+
 Tasks 至少应写以下 E2E：
 
 1. OWNER 创建成功，返回 201，并有审计事件；

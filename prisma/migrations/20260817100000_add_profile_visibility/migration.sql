@@ -6,7 +6,7 @@ CREATE TABLE "profile_visibility" (
     "avatar" "ProfileFieldVisibility" NOT NULL DEFAULT 'PRIVATE',
     "email" "ProfileFieldVisibility" NOT NULL DEFAULT 'PRIVATE',
     "phone" "ProfileFieldVisibility" NOT NULL DEFAULT 'PRIVATE',
-    "updated_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
     CONSTRAINT "profile_visibility_pkey" PRIMARY KEY ("user_id")
 );

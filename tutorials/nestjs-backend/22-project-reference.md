@@ -72,6 +72,20 @@ GET    /api/profiles/:userId/avatar
 
 所有 Profile Route 都需要 Active Session；写入还需要允许的 Origin 与对应 Session 的 CSRF Token。`/profile` 是本人视图，`/profiles/:userId` 是字段 Allowlist 的共享视图；不要假设它们可以互换。
 
+### 站内通知
+
+```text
+GET    /api/notifications
+GET    /api/notifications/unread-count
+GET    /api/notifications/stream
+PATCH  /api/notifications/:notificationId/read
+PATCH  /api/notifications/read-all
+DELETE /api/notifications/:notificationId
+DELETE /api/notifications/read
+```
+
+通知列表、未读数和 SSE 都只面向当前 Session Actor；写操作还需要 Origin + CSRF。SSE 用于增量提示，列表/未读数才是恢复状态的权威读取。
+
 ## 22.2 推荐阅读顺序
 
 1. `README.md`：启动和能力总览；
@@ -93,7 +107,11 @@ GET    /api/profiles/:userId/avatar
 17. `apps/api/src/profile/profile.service.ts`：可见性、昵称行锁配额、审计和对象引用切换；
 18. `apps/api/src/profile/avatar-storage.service.ts`：Sharp 处理与私有 S3/MinIO Adapter；
 19. `test/profile.e2e-spec.ts`：隐私、并发、上传和拒绝路径；
-20. `docs/adr/`、`docs/THREAT_MODEL.md`：其他决策背后的原因。
+20. `apps/api/src/notifications/notifications.service.ts`：游标、用户范围收件箱和幂等创建；
+21. `apps/api/src/notifications/notification-realtime.service.ts`：SSE 回放、心跳和数据库对账；
+22. `libs/platform/src/notifications/notification-contract.ts`：内部输入/Outbox Payload 契约；
+23. `test/notifications.e2e-spec.ts`：通知 API、隐私与实时链路；
+24. `docs/adr/`、`docs/THREAT_MODEL.md`：其他决策背后的原因。
 
 ## 22.3 最后记住的五条原则
 

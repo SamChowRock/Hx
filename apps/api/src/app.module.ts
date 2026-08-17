@@ -9,6 +9,7 @@ import { DatabaseModule } from '../../../libs/platform/src/database';
 import { HealthController } from './health/health.controller';
 import { AuthorizationModule } from './authorization/authorization.module';
 import { IdentityModule } from './identity/identity.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { ProjectsModule } from './projects/projects.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { ProfileModule } from './profile/profile.module';
@@ -18,6 +19,7 @@ import { ProfileModule } from './profile/profile.module';
     EnvironmentModule,
     DatabaseModule,
     IdentityModule,
+    NotificationsModule,
     AuthorizationModule,
     ProjectsModule,
     OrganizationsModule,

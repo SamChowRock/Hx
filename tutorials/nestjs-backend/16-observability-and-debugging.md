@@ -57,6 +57,7 @@ console.log(`Task ${taskId} created in ${organizationId}`);
 11. PostgreSQL 是否 ready、Migration 是否齐全；
 12. Worker 是否启动、Outbox 是 PENDING/PROCESSING/DEAD；
 13. Mailpit/Provider 是否可用。
+14. 通知时检查 Outbox 是否已投递、`notifications` 是否插入、SSE 是否要求客户端 resync。
 
 ## 16.4 常见故障命令
 
@@ -87,6 +88,8 @@ lsof -nP -iTCP:3000 -sTCP:LISTEN
 | DEAD       | 达到最大次数       | Provider 配置、网络、Payload Schema、重放流程 |
 
 当前项目还没有管理 UI 和重放工具，不要随意在生产数据库手改状态；应先设计经过审计的运维命令。
+
+通知排错从事实源开始：先查 `notifications` 的 `user_id`、`read_at`、`expires_at`，再查对应 Outbox 状态。SSE 只是增量提示；收到 `resync-required`、重连或页面聚焦时，客户端应重新请求通知列表与未读数，而不是尝试从内存事件推断最终状态。
 
 ## 16.6 三个具体排错案例
 

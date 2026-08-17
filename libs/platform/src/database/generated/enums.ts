@@ -34,6 +34,16 @@ export const ProfileFieldVisibility = {
 export type ProfileFieldVisibility = (typeof ProfileFieldVisibility)[keyof typeof ProfileFieldVisibility]
 
 
+export const NotificationSeverity = {
+  INFO: 'INFO',
+  SUCCESS: 'SUCCESS',
+  WARNING: 'WARNING',
+  ERROR: 'ERROR'
+} as const
+
+export type NotificationSeverity = (typeof NotificationSeverity)[keyof typeof NotificationSeverity]
+
+
 export const OrganizationRole = {
   OWNER: 'OWNER',
   ADMIN: 'ADMIN',

@@ -8,9 +8,9 @@
 
 - Datasource Provider：`postgresql`
 - Client Generator：`prisma-client`
-- Models：17
-- Enums：7
-- Migrations：9
+- Models：18
+- Enums：8
+- Migrations：10
 
 ## Enums
 
@@ -29,6 +29,13 @@
 
 - `PRIVATE`
 - `AUTHENTICATED`
+
+### NotificationSeverity
+
+- `INFO`
+- `SUCCESS`
+- `WARNING`
+- `ERROR`
 
 ### OrganizationRole
 
@@ -80,7 +87,28 @@ Model Directives：`@@map("users")`
 | `externalIdentities` | `ExternalIdentity[]` | — |
 | `nicknameChanges` | `NicknameChange[]` | — |
 | `profileVisibility` | `ProfileVisibility?` | — |
+| `notifications` | `Notification[]` | — |
 | `auditEvents` | `AuditEvent[]` | @relation("AuditActor") |
+
+### Notification → `notifications`
+
+Model Directives：`@@unique([userId, dedupeKey])`、`@@index([userId, createdAt, id])`、`@@index([userId, readAt, createdAt])`、`@@index([expiresAt])`、`@@map("notifications")`
+
+<!-- prettier-ignore -->
+| Field | Prisma Type | Attributes / Relation |
+| --- | --- | --- |
+| `id` | `String` | @id @default(uuid()) @db.Uuid |
+| `userId` | `String` | @map("user_id") @db.Uuid |
+| `kind` | `String` | @db.VarChar(64) |
+| `severity` | `NotificationSeverity` | @default(INFO) |
+| `title` | `String` | @db.VarChar(120) |
+| `body` | `String` | @db.VarChar(1000) |
+| `actionUrl` | `String?` | @map("action_url") @db.VarChar(500) |
+| `dedupeKey` | `String?` | @map("dedupe_key") @db.VarChar(128) |
+| `readAt` | `DateTime?` | @map("read_at") @db.Timestamptz(6) |
+| `expiresAt` | `DateTime?` | @map("expires_at") @db.Timestamptz(6) |
+| `createdAt` | `DateTime` | @default(now()) @map("created_at") @db.Timestamptz(6) |
+| `user` | `User` | @relation(fields: [userId], references: [id], onDelete: Cascade) |
 
 ### ProfileVisibility → `profile_visibility`
 
@@ -359,3 +387,4 @@ Model Directives：`@@index([status, availableAt])`、`@@map("outbox_events")`
 | `20260814090000_add_oauth_profile_transactions` | [migration.sql](../../../prisma/migrations/20260814090000_add_oauth_profile_transactions/migration.sql) |
 | `20260816100000_add_user_profiles` | [migration.sql](../../../prisma/migrations/20260816100000_add_user_profiles/migration.sql) |
 | `20260817100000_add_profile_visibility` | [migration.sql](../../../prisma/migrations/20260817100000_add_profile_visibility/migration.sql) |
+| `20260817130000_add_notifications` | [migration.sql](../../../prisma/migrations/20260817130000_add_notifications/migration.sql) |

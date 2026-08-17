@@ -213,6 +213,7 @@ export type UserWhereInput = {
   externalIdentities?: Prisma.ExternalIdentityListRelationFilter
   nicknameChanges?: Prisma.NicknameChangeListRelationFilter
   profileVisibility?: Prisma.XOR<Prisma.ProfileVisibilityNullableScalarRelationFilter, Prisma.ProfileVisibilityWhereInput> | null
+  notifications?: Prisma.NotificationListRelationFilter
   auditEvents?: Prisma.AuditEventListRelationFilter
 }
 
@@ -232,6 +233,7 @@ export type UserOrderByWithRelationInput = {
   externalIdentities?: Prisma.ExternalIdentityOrderByRelationAggregateInput
   nicknameChanges?: Prisma.NicknameChangeOrderByRelationAggregateInput
   profileVisibility?: Prisma.ProfileVisibilityOrderByWithRelationInput
+  notifications?: Prisma.NotificationOrderByRelationAggregateInput
   auditEvents?: Prisma.AuditEventOrderByRelationAggregateInput
 }
 
@@ -254,6 +256,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   externalIdentities?: Prisma.ExternalIdentityListRelationFilter
   nicknameChanges?: Prisma.NicknameChangeListRelationFilter
   profileVisibility?: Prisma.XOR<Prisma.ProfileVisibilityNullableScalarRelationFilter, Prisma.ProfileVisibilityWhereInput> | null
+  notifications?: Prisma.NotificationListRelationFilter
   auditEvents?: Prisma.AuditEventListRelationFilter
 }, "id">
 
@@ -301,6 +304,7 @@ export type UserCreateInput = {
   externalIdentities?: Prisma.ExternalIdentityCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
 }
 
@@ -320,6 +324,7 @@ export type UserUncheckedCreateInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
 }
 
@@ -339,6 +344,7 @@ export type UserUpdateInput = {
   externalIdentities?: Prisma.ExternalIdentityUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
 }
 
@@ -358,6 +364,7 @@ export type UserUncheckedUpdateInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
 }
 
@@ -455,6 +462,20 @@ export type EnumUserStatusFieldUpdateOperationsInput = {
 
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
+}
+
+export type UserCreateNestedOneWithoutNotificationsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutNotificationsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutNotificationsInput
+  upsert?: Prisma.UserUpsertWithoutNotificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutNotificationsInput, Prisma.UserUpdateWithoutNotificationsInput>, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
 }
 
 export type UserCreateNestedOneWithoutProfileVisibilityInput = {
@@ -571,6 +592,98 @@ export type UserUpdateOneWithoutAuditEventsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAuditEventsInput, Prisma.UserUpdateWithoutAuditEventsInput>, Prisma.UserUncheckedUpdateWithoutAuditEventsInput>
 }
 
+export type UserCreateWithoutNotificationsInput = {
+  id?: string
+  displayName: string
+  bio?: string | null
+  avatarObjectKey?: string | null
+  avatarUpdatedAt?: Date | string | null
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  contacts?: Prisma.UserContactCreateNestedManyWithoutUserInput
+  credential?: Prisma.PasswordCredentialCreateNestedOneWithoutUserInput
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  memberships?: Prisma.MembershipCreateNestedManyWithoutUserInput
+  externalIdentities?: Prisma.ExternalIdentityCreateNestedManyWithoutUserInput
+  nicknameChanges?: Prisma.NicknameChangeCreateNestedManyWithoutUserInput
+  profileVisibility?: Prisma.ProfileVisibilityCreateNestedOneWithoutUserInput
+  auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
+}
+
+export type UserUncheckedCreateWithoutNotificationsInput = {
+  id?: string
+  displayName: string
+  bio?: string | null
+  avatarObjectKey?: string | null
+  avatarUpdatedAt?: Date | string | null
+  status?: $Enums.UserStatus
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  contacts?: Prisma.UserContactUncheckedCreateNestedManyWithoutUserInput
+  credential?: Prisma.PasswordCredentialUncheckedCreateNestedOneWithoutUserInput
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  memberships?: Prisma.MembershipUncheckedCreateNestedManyWithoutUserInput
+  externalIdentities?: Prisma.ExternalIdentityUncheckedCreateNestedManyWithoutUserInput
+  nicknameChanges?: Prisma.NicknameChangeUncheckedCreateNestedManyWithoutUserInput
+  profileVisibility?: Prisma.ProfileVisibilityUncheckedCreateNestedOneWithoutUserInput
+  auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
+}
+
+export type UserCreateOrConnectWithoutNotificationsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+}
+
+export type UserUpsertWithoutNotificationsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutNotificationsInput, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutNotificationsInput, Prisma.UserUncheckedCreateWithoutNotificationsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutNotificationsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutNotificationsInput, Prisma.UserUncheckedUpdateWithoutNotificationsInput>
+}
+
+export type UserUpdateWithoutNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarObjectKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  contacts?: Prisma.UserContactUpdateManyWithoutUserNestedInput
+  credential?: Prisma.PasswordCredentialUpdateOneWithoutUserNestedInput
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  memberships?: Prisma.MembershipUpdateManyWithoutUserNestedInput
+  externalIdentities?: Prisma.ExternalIdentityUpdateManyWithoutUserNestedInput
+  nicknameChanges?: Prisma.NicknameChangeUpdateManyWithoutUserNestedInput
+  profileVisibility?: Prisma.ProfileVisibilityUpdateOneWithoutUserNestedInput
+  auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
+}
+
+export type UserUncheckedUpdateWithoutNotificationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  displayName?: Prisma.StringFieldUpdateOperationsInput | string
+  bio?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarObjectKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  avatarUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumUserStatusFieldUpdateOperationsInput | $Enums.UserStatus
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  contacts?: Prisma.UserContactUncheckedUpdateManyWithoutUserNestedInput
+  credential?: Prisma.PasswordCredentialUncheckedUpdateOneWithoutUserNestedInput
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  memberships?: Prisma.MembershipUncheckedUpdateManyWithoutUserNestedInput
+  externalIdentities?: Prisma.ExternalIdentityUncheckedUpdateManyWithoutUserNestedInput
+  nicknameChanges?: Prisma.NicknameChangeUncheckedUpdateManyWithoutUserNestedInput
+  profileVisibility?: Prisma.ProfileVisibilityUncheckedUpdateOneWithoutUserNestedInput
+  auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
+}
+
 export type UserCreateWithoutProfileVisibilityInput = {
   id?: string
   displayName: string
@@ -586,6 +699,7 @@ export type UserCreateWithoutProfileVisibilityInput = {
   memberships?: Prisma.MembershipCreateNestedManyWithoutUserInput
   externalIdentities?: Prisma.ExternalIdentityCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
 }
 
@@ -604,6 +718,7 @@ export type UserUncheckedCreateWithoutProfileVisibilityInput = {
   memberships?: Prisma.MembershipUncheckedCreateNestedManyWithoutUserInput
   externalIdentities?: Prisma.ExternalIdentityUncheckedCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
 }
 
@@ -638,6 +753,7 @@ export type UserUpdateWithoutProfileVisibilityInput = {
   memberships?: Prisma.MembershipUpdateManyWithoutUserNestedInput
   externalIdentities?: Prisma.ExternalIdentityUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
 }
 
@@ -656,6 +772,7 @@ export type UserUncheckedUpdateWithoutProfileVisibilityInput = {
   memberships?: Prisma.MembershipUncheckedUpdateManyWithoutUserNestedInput
   externalIdentities?: Prisma.ExternalIdentityUncheckedUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
 }
 
@@ -674,6 +791,7 @@ export type UserCreateWithoutNicknameChangesInput = {
   memberships?: Prisma.MembershipCreateNestedManyWithoutUserInput
   externalIdentities?: Prisma.ExternalIdentityCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
 }
 
@@ -692,6 +810,7 @@ export type UserUncheckedCreateWithoutNicknameChangesInput = {
   memberships?: Prisma.MembershipUncheckedCreateNestedManyWithoutUserInput
   externalIdentities?: Prisma.ExternalIdentityUncheckedCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
 }
 
@@ -726,6 +845,7 @@ export type UserUpdateWithoutNicknameChangesInput = {
   memberships?: Prisma.MembershipUpdateManyWithoutUserNestedInput
   externalIdentities?: Prisma.ExternalIdentityUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
 }
 
@@ -744,6 +864,7 @@ export type UserUncheckedUpdateWithoutNicknameChangesInput = {
   memberships?: Prisma.MembershipUncheckedUpdateManyWithoutUserNestedInput
   externalIdentities?: Prisma.ExternalIdentityUncheckedUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
 }
 
@@ -762,6 +883,7 @@ export type UserCreateWithoutExternalIdentitiesInput = {
   memberships?: Prisma.MembershipCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
 }
 
@@ -780,6 +902,7 @@ export type UserUncheckedCreateWithoutExternalIdentitiesInput = {
   memberships?: Prisma.MembershipUncheckedCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
 }
 
@@ -814,6 +937,7 @@ export type UserUpdateWithoutExternalIdentitiesInput = {
   memberships?: Prisma.MembershipUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
 }
 
@@ -832,6 +956,7 @@ export type UserUncheckedUpdateWithoutExternalIdentitiesInput = {
   memberships?: Prisma.MembershipUncheckedUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
 }
 
@@ -850,6 +975,7 @@ export type UserCreateWithoutContactsInput = {
   externalIdentities?: Prisma.ExternalIdentityCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
 }
 
@@ -868,6 +994,7 @@ export type UserUncheckedCreateWithoutContactsInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
 }
 
@@ -902,6 +1029,7 @@ export type UserUpdateWithoutContactsInput = {
   externalIdentities?: Prisma.ExternalIdentityUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
 }
 
@@ -920,6 +1048,7 @@ export type UserUncheckedUpdateWithoutContactsInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
 }
 
@@ -938,6 +1067,7 @@ export type UserCreateWithoutCredentialInput = {
   externalIdentities?: Prisma.ExternalIdentityCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
 }
 
@@ -956,6 +1086,7 @@ export type UserUncheckedCreateWithoutCredentialInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
 }
 
@@ -990,6 +1121,7 @@ export type UserUpdateWithoutCredentialInput = {
   externalIdentities?: Prisma.ExternalIdentityUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
 }
 
@@ -1008,6 +1140,7 @@ export type UserUncheckedUpdateWithoutCredentialInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
 }
 
@@ -1026,6 +1159,7 @@ export type UserCreateWithoutMembershipsInput = {
   externalIdentities?: Prisma.ExternalIdentityCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
 }
 
@@ -1044,6 +1178,7 @@ export type UserUncheckedCreateWithoutMembershipsInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
 }
 
@@ -1078,6 +1213,7 @@ export type UserUpdateWithoutMembershipsInput = {
   externalIdentities?: Prisma.ExternalIdentityUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
 }
 
@@ -1096,6 +1232,7 @@ export type UserUncheckedUpdateWithoutMembershipsInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
 }
 
@@ -1114,6 +1251,7 @@ export type UserCreateWithoutSessionsInput = {
   externalIdentities?: Prisma.ExternalIdentityCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventCreateNestedManyWithoutActorInput
 }
 
@@ -1132,6 +1270,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   auditEvents?: Prisma.AuditEventUncheckedCreateNestedManyWithoutActorInput
 }
 
@@ -1166,6 +1305,7 @@ export type UserUpdateWithoutSessionsInput = {
   externalIdentities?: Prisma.ExternalIdentityUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUpdateManyWithoutActorNestedInput
 }
 
@@ -1184,6 +1324,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   auditEvents?: Prisma.AuditEventUncheckedUpdateManyWithoutActorNestedInput
 }
 
@@ -1203,6 +1344,7 @@ export type UserCreateWithoutAuditEventsInput = {
   externalIdentities?: Prisma.ExternalIdentityCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuditEventsInput = {
@@ -1221,6 +1363,7 @@ export type UserUncheckedCreateWithoutAuditEventsInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedCreateNestedManyWithoutUserInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedCreateNestedManyWithoutUserInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedCreateNestedOneWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuditEventsInput = {
@@ -1255,6 +1398,7 @@ export type UserUpdateWithoutAuditEventsInput = {
   externalIdentities?: Prisma.ExternalIdentityUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditEventsInput = {
@@ -1273,6 +1417,7 @@ export type UserUncheckedUpdateWithoutAuditEventsInput = {
   externalIdentities?: Prisma.ExternalIdentityUncheckedUpdateManyWithoutUserNestedInput
   nicknameChanges?: Prisma.NicknameChangeUncheckedUpdateManyWithoutUserNestedInput
   profileVisibility?: Prisma.ProfileVisibilityUncheckedUpdateOneWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -1286,6 +1431,7 @@ export type UserCountOutputType = {
   memberships: number
   externalIdentities: number
   nicknameChanges: number
+  notifications: number
   auditEvents: number
 }
 
@@ -1295,6 +1441,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   memberships?: boolean | UserCountOutputTypeCountMembershipsArgs
   externalIdentities?: boolean | UserCountOutputTypeCountExternalIdentitiesArgs
   nicknameChanges?: boolean | UserCountOutputTypeCountNicknameChangesArgs
+  notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
   auditEvents?: boolean | UserCountOutputTypeCountAuditEventsArgs
 }
 
@@ -1346,6 +1493,13 @@ export type UserCountOutputTypeCountNicknameChangesArgs<ExtArgs extends runtime.
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.NotificationWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountAuditEventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AuditEventWhereInput
 }
@@ -1367,6 +1521,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   externalIdentities?: boolean | Prisma.User$externalIdentitiesArgs<ExtArgs>
   nicknameChanges?: boolean | Prisma.User$nicknameChangesArgs<ExtArgs>
   profileVisibility?: boolean | Prisma.User$profileVisibilityArgs<ExtArgs>
+  notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   auditEvents?: boolean | Prisma.User$auditEventsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
@@ -1413,6 +1568,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   externalIdentities?: boolean | Prisma.User$externalIdentitiesArgs<ExtArgs>
   nicknameChanges?: boolean | Prisma.User$nicknameChangesArgs<ExtArgs>
   profileVisibility?: boolean | Prisma.User$profileVisibilityArgs<ExtArgs>
+  notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   auditEvents?: boolean | Prisma.User$auditEventsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
@@ -1429,6 +1585,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     externalIdentities: Prisma.$ExternalIdentityPayload<ExtArgs>[]
     nicknameChanges: Prisma.$NicknameChangePayload<ExtArgs>[]
     profileVisibility: Prisma.$ProfileVisibilityPayload<ExtArgs> | null
+    notifications: Prisma.$NotificationPayload<ExtArgs>[]
     auditEvents: Prisma.$AuditEventPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1841,6 +1998,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   externalIdentities<T extends Prisma.User$externalIdentitiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$externalIdentitiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ExternalIdentityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   nicknameChanges<T extends Prisma.User$nicknameChangesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$nicknameChangesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NicknameChangePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   profileVisibility<T extends Prisma.User$profileVisibilityArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$profileVisibilityArgs<ExtArgs>>): Prisma.Prisma__ProfileVisibilityClient<runtime.Types.Result.GetResult<Prisma.$ProfileVisibilityPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   auditEvents<T extends Prisma.User$auditEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$auditEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AuditEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -2427,6 +2585,30 @@ export type User$profileVisibilityArgs<ExtArgs extends runtime.Types.Extensions.
    */
   include?: Prisma.ProfileVisibilityInclude<ExtArgs> | null
   where?: Prisma.ProfileVisibilityWhereInput
+}
+
+/**
+ * User.notifications
+ */
+export type User$notificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Notification
+   */
+  select?: Prisma.NotificationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Notification
+   */
+  omit?: Prisma.NotificationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.NotificationInclude<ExtArgs> | null
+  where?: Prisma.NotificationWhereInput
+  orderBy?: Prisma.NotificationOrderByWithRelationInput | Prisma.NotificationOrderByWithRelationInput[]
+  cursor?: Prisma.NotificationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.NotificationScalarFieldEnum | Prisma.NotificationScalarFieldEnum[]
 }
 
 /**

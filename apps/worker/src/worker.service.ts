@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 import { ENVIRONMENT, type Environment } from '../../../libs/platform/src/config';
 import { DatabaseService } from '../../../libs/platform/src/database';
+import { notificationOutboxPayloadSchema } from '../../../libs/platform/src/notifications';
 
 const emailPayloadSchema = z.object({
   to: z.string().email(),
@@ -98,6 +99,28 @@ export class WorkerService implements OnApplicationBootstrap, OnApplicationShutd
         });
       } else if (event.type === 'sms.send') {
         await this.sendSms(smsPayloadSchema.parse(event.payload));
+      } else if (event.type === 'notification.create') {
+        const notification = notificationOutboxPayloadSchema.parse(event.payload);
+        const expiresAt = notification.expiresAt ? new Date(notification.expiresAt) : null;
+        const recipientIsActive =
+          (await this.database.user.count({
+            where: { id: notification.userId, status: 'ACTIVE' },
+          })) === 1;
+        if (recipientIsActive && (!expiresAt || expiresAt > new Date())) {
+          await this.database.notification.createMany({
+            data: {
+              userId: notification.userId,
+              kind: notification.kind,
+              severity: notification.severity,
+              title: notification.title,
+              body: notification.body,
+              actionUrl: notification.actionUrl ?? null,
+              dedupeKey: notification.dedupeKey,
+              expiresAt,
+            },
+            skipDuplicates: true,
+          });
+        }
       } else {
         throw new Error(`Unsupported event type: ${event.type}`);
       }

@@ -16,6 +16,7 @@
 | AppModule | [apps/api/src/app.module.ts](../../../apps/api/src/app.module.ts) |
 | AuthorizationModule | [apps/api/src/authorization/authorization.module.ts](../../../apps/api/src/authorization/authorization.module.ts) |
 | IdentityModule | [apps/api/src/identity/identity.module.ts](../../../apps/api/src/identity/identity.module.ts) |
+| NotificationsModule | [apps/api/src/notifications/notifications.module.ts](../../../apps/api/src/notifications/notifications.module.ts) |
 | OrganizationsModule | [apps/api/src/organizations/organizations.module.ts](../../../apps/api/src/organizations/organizations.module.ts) |
 | ProfileModule | [apps/api/src/profile/profile.module.ts](../../../apps/api/src/profile/profile.module.ts) |
 | ProjectsModule | [apps/api/src/projects/projects.module.ts](../../../apps/api/src/projects/projects.module.ts) |
@@ -47,6 +48,12 @@
 | `DELETE` | `/api/auth/sessions/:sessionId` | IdentityController | [apps/api/src/identity/identity.controller.ts](../../../apps/api/src/identity/identity.controller.ts) |
 | `GET` | `/api/health/live` | HealthController | [apps/api/src/health/health.controller.ts](../../../apps/api/src/health/health.controller.ts) |
 | `GET` | `/api/health/ready` | HealthController | [apps/api/src/health/health.controller.ts](../../../apps/api/src/health/health.controller.ts) |
+| `GET` | `/api/notifications` | NotificationsController | [apps/api/src/notifications/notifications.controller.ts](../../../apps/api/src/notifications/notifications.controller.ts) |
+| `DELETE` | `/api/notifications/:notificationId` | NotificationsController | [apps/api/src/notifications/notifications.controller.ts](../../../apps/api/src/notifications/notifications.controller.ts) |
+| `PATCH` | `/api/notifications/:notificationId/read` | NotificationsController | [apps/api/src/notifications/notifications.controller.ts](../../../apps/api/src/notifications/notifications.controller.ts) |
+| `DELETE` | `/api/notifications/read` | NotificationsController | [apps/api/src/notifications/notifications.controller.ts](../../../apps/api/src/notifications/notifications.controller.ts) |
+| `PATCH` | `/api/notifications/read-all` | NotificationsController | [apps/api/src/notifications/notifications.controller.ts](../../../apps/api/src/notifications/notifications.controller.ts) |
+| `GET` | `/api/notifications/unread-count` | NotificationsController | [apps/api/src/notifications/notifications.controller.ts](../../../apps/api/src/notifications/notifications.controller.ts) |
 | `GET` | `/api/organizations/:organizationId/members` | OrganizationsController | [apps/api/src/organizations/organizations.controller.ts](../../../apps/api/src/organizations/organizations.controller.ts) |
 | `POST` | `/api/organizations/:organizationId/members` | OrganizationsController | [apps/api/src/organizations/organizations.controller.ts](../../../apps/api/src/organizations/organizations.controller.ts) |
 | `GET` | `/api/organizations/:organizationId/projects` | ProjectsController | [apps/api/src/projects/projects.controller.ts](../../../apps/api/src/projects/projects.controller.ts) |

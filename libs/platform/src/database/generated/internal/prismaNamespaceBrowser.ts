@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
+  Notification: 'Notification',
   ProfileVisibility: 'ProfileVisibility',
   NicknameChange: 'NicknameChange',
   ExternalIdentity: 'ExternalIdentity',
@@ -98,6 +99,23 @@ export const UserScalarFieldEnum = {
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  kind: 'kind',
+  severity: 'severity',
+  title: 'title',
+  body: 'body',
+  actionUrl: 'actionUrl',
+  dedupeKey: 'dedupeKey',
+  readAt: 'readAt',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
 
 
 export const ProfileVisibilityScalarFieldEnum = {

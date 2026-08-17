@@ -21,7 +21,9 @@ describe('WorkerService', () => {
     updateMany: jest.fn(),
     update: jest.fn(),
   };
-  const database = { outboxEvent } as unknown as DatabaseService;
+  const notification = { createMany: jest.fn() };
+  const user = { count: jest.fn() };
+  const database = { outboxEvent, notification, user } as unknown as DatabaseService;
   const environment = loadEnvironment({ NODE_ENV: 'test' });
 
   beforeEach(() => {
@@ -110,5 +112,52 @@ describe('WorkerService', () => {
       }),
     );
     expect(JSON.stringify(outboxEvent.update.mock.calls)).not.toContain('secret provider detail');
+  });
+
+  it('creates an idempotent in-app notification from the outbox', async () => {
+    user.count.mockResolvedValue(1);
+    notification.createMany.mockResolvedValue({ count: 1 });
+    outboxEvent.update.mockResolvedValue({});
+    const service = new WorkerService(database, environment, logger);
+    const deliver = service as unknown as {
+      deliver(event: {
+        id: string;
+        type: string;
+        payload: object;
+        attempts: number;
+        availableAt: Date;
+      }): Promise<void>;
+    };
+
+    await deliver.deliver({
+      id: 'event-3',
+      type: 'notification.create',
+      payload: {
+        userId: '00000000-0000-4000-8000-000000000001',
+        kind: 'organization.member.added',
+        severity: 'SUCCESS',
+        title: 'Organization access granted',
+        body: 'You were added to Example as MEMBER.',
+        actionUrl: '/organizations/00000000-0000-4000-8000-000000000002',
+        dedupeKey: 'organization.member.added:00000000-0000-4000-8000-000000000003',
+      },
+      attempts: 1,
+      availableAt: new Date(),
+    });
+
+    expect(notification.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: '00000000-0000-4000-8000-000000000001',
+          dedupeKey: expect.stringContaining('organization.member.added:'),
+        }),
+        skipDuplicates: true,
+      }),
+    );
+    expect(outboxEvent.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'DELIVERED', payload: { redacted: true } }),
+      }),
+    );
   });
 });

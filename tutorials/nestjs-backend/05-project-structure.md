@@ -11,6 +11,7 @@ apps/
     identity/                  # 注册、Session、密码、OIDC、微信 OAuth
     authorization/             # ActorContext、RBAC、多租户授权
     profile/                   # 本人 Profile、字段隐私、头像处理与私有对象存储
+    notifications/             # 站内收件箱、SSE 与通知 HTTP 边界
     organizations/             # 成员读取与添加
     projects/                  # Project 示例业务
     health/                    # liveness / readiness
@@ -23,6 +24,7 @@ libs/
   platform/src/
     config/                    # Zod 环境变量校验和 Provider
     database/                  # Prisma Client 封装及生成代码
+    notifications/             # 通知输入/Outbox Payload 的共享 Zod 契约
 prisma/
   schema.prisma               # 数据模型唯一主要定义
   migrations/                 # 版本化 SQL Migration

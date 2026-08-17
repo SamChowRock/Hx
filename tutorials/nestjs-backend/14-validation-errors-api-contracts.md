@@ -56,6 +56,8 @@ return {
 
 当前 Project 列表直接返回数组，这是一个可以练习升级为游标分页的地方。
 
+通知列表已经提供完整游标示例：把 `{ createdAt, id }` 作为 Base64URL Cursor，并按两字段稳定排序。Cursor 是 API 契约，不是前端自行拼装的 offset；服务端会限制长度、解码并用 Zod 验证结构，损坏 Cursor 返回 400。详细原因见[通知专题](notifications/README.md)。
+
 ## 14.4 Swagger 的当前边界
 
 开发和测试环境在 `/docs` 生成 OpenAPI，但当前 Controller 使用 `unknown + Zod`，没有完整的 `@ApiBody`/Response DTO 元数据，因此 Swagger 页面未必能精确描述所有请求体和响应结构。

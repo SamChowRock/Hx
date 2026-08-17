@@ -56,6 +56,8 @@ stateDiagram-v2
 
 ## 13.3 新增一种 Outbox Event
 
+当前项目已经实现 `notification.create`：Organization 新成员在同一事务写入 Membership、AuditEvent 和 Outbox；Worker 用共享 Zod Contract 再次校验 Payload，以 `(userId, dedupeKey)` 唯一约束幂等写入 `Notification`，再将 Outbox 标记为 DELIVERED 并脱敏 Payload。完整收件箱与 SSE 语义见[通知专题](notifications/README.md)。
+
 假设 Task 创建后要发通知：
 
 1. 定义稳定类型，例如 `task.created.notify`；

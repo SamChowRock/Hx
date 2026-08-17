@@ -26,8 +26,9 @@
 4. [认证](09-authentication.md)
 5. [用户 Profile：隐私、并发配额与私有头像](profiles/README.md)
 6. [授权与多租户](10-authorization-and-multitenancy.md)
-7. [Tasks 完整实战](workshop/README.md)
-8. [测试](15-testing.md)
+7. [站内通知：Outbox、幂等收件箱与 SSE](notifications/README.md)
+8. [Tasks 完整实战](workshop/README.md)
+9. [测试](15-testing.md)
 
 ### 路线 C：补齐生产级后端能力
 
@@ -38,8 +39,9 @@
 3. [校验、错误和 API 契约](14-validation-errors-api-contracts.md)
 4. [日志、健康检查与排错](16-observability-and-debugging.md)
 5. [构建、部署、SLO 与容量](17-build-deploy-operations.md)
-6. [研发工作流与设计文档](18-development-workflow-and-design.md)
-7. [安全与反模式](19-security-and-antipatterns.md)
+6. [初创项目的低运维生产方案：大陆与海外](deployment/README.md)
+7. [研发工作流与设计文档](18-development-workflow-and-design.md)
+8. [安全与反模式](19-security-and-antipatterns.md)
 
 ### 路线 D：从“能独立开发”到专家训练
 
@@ -84,6 +86,7 @@
 - [09A｜认证专题：微信开放平台网站扫码 OAuth](authentication/README.md)
 - [10｜授权、RBAC 与多租户隔离](10-authorization-and-multitenancy.md)
 - [10A｜用户 Profile 专题：隐私、并发配额与私有头像](profiles/README.md)
+- [10B｜站内通知专题：Outbox、幂等收件箱与 SSE](notifications/README.md)
 
 ### 第四部分：完整业务研发
 
@@ -97,6 +100,7 @@
 
 - [16｜日志、健康检查与排错](16-observability-and-debugging.md)
 - [17｜构建、容器化、部署与容量设计](17-build-deploy-operations.md)
+- [17A｜初创项目的低运维生产方案：大陆与海外](deployment/README.md)
 - [18｜日常研发工作流与功能设计](18-development-workflow-and-design.md)
 - [19｜安全问题与常见反模式](19-security-and-antipatterns.md)
 
