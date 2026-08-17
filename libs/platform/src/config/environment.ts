@@ -11,6 +11,8 @@ const optionalUrl = z.preprocess(
 );
 
 const developmentAuthSecret = 'development-only-auth-secret-change-before-production';
+const localObjectStorageAccessKey = 'minioadmin';
+const localObjectStorageSecretKey = 'minioadmin';
 
 export const environmentSchema = z
   .object({
@@ -40,6 +42,15 @@ export const environmentSchema = z
     WECHAT_PROVIDER_KEY: optionalString,
     WECHAT_APP_ID: optionalString,
     WECHAT_APP_SECRET: optionalString,
+    OBJECT_STORAGE_ENDPOINT: z.string().url().default('http://localhost:9000'),
+    OBJECT_STORAGE_REGION: z.string().min(1).max(128).default('us-east-1'),
+    OBJECT_STORAGE_ACCESS_KEY: z.string().min(3).max(256).default(localObjectStorageAccessKey),
+    OBJECT_STORAGE_SECRET_KEY: z.string().min(8).max(512).default(localObjectStorageSecretKey),
+    OBJECT_STORAGE_BUCKET: z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/)
+      .default('user-content'),
+    OBJECT_STORAGE_FORCE_PATH_STYLE: booleanFromString.default('true'),
   })
   .superRefine((environment, context) => {
     const deployed = environment.NODE_ENV === 'staging' || environment.NODE_ENV === 'production';
@@ -73,6 +84,24 @@ export const environmentSchema = z
           code: z.ZodIssueCode.custom,
           path: ['API_CORS_ORIGINS'],
           message: 'must include WEB_APP_ORIGIN outside development and test',
+        });
+      }
+
+      if (new URL(environment.OBJECT_STORAGE_ENDPOINT).protocol !== 'https:') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['OBJECT_STORAGE_ENDPOINT'],
+          message: 'must use HTTPS outside development and test',
+        });
+      }
+      if (
+        environment.OBJECT_STORAGE_ACCESS_KEY === localObjectStorageAccessKey ||
+        environment.OBJECT_STORAGE_SECRET_KEY === localObjectStorageSecretKey
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['OBJECT_STORAGE_ACCESS_KEY'],
+          message: 'local object-storage credentials cannot be used outside development and test',
         });
       }
     }

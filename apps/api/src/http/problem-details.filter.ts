@@ -16,7 +16,13 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     const response = host.switchToHttp().getResponse<Response>();
     const request = host.switchToHttp().getRequest<Request & { id?: string }>();
 
-    const { status, title, detail, errors } = this.describe(exception);
+    const { status, title, detail, errors, code, retryAt } = this.describe(exception);
+    if (retryAt) {
+      response.setHeader(
+        'Retry-After',
+        Math.max(0, Math.ceil((new Date(retryAt).getTime() - Date.now()) / 1_000)),
+      );
+    }
     response
       .status(status)
       .type('application/problem+json')
@@ -28,6 +34,8 @@ export class ProblemDetailsFilter implements ExceptionFilter {
         instance: request.path,
         ...(request.id ? { requestId: request.id } : {}),
         ...(errors ? { errors } : {}),
+        ...(code ? { code } : {}),
+        ...(retryAt ? { retryAt } : {}),
       });
   }
 
@@ -36,6 +44,8 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     title: string;
     detail: string;
     errors?: Array<{ path: string; message: string }>;
+    code?: string;
+    retryAt?: string;
   } {
     if (exception instanceof ZodError) {
       return {
@@ -76,7 +86,15 @@ export class ProblemDetailsFilter implements ExceptionFilter {
               ? body.message.join('; ')
               : String(body.message)
             : exception.message;
-      return { status, title: HttpStatus[status] ?? 'Request failed', detail };
+      const code =
+        typeof body === 'object' && body && 'code' in body && typeof body.code === 'string'
+          ? body.code
+          : undefined;
+      const retryAt =
+        typeof body === 'object' && body && 'retryAt' in body && typeof body.retryAt === 'string'
+          ? body.retryAt
+          : undefined;
+      return { status, title: HttpStatus[status] ?? 'Request failed', detail, code, retryAt };
     }
 
     return {

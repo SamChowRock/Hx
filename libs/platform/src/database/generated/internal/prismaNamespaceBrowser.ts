@@ -52,6 +52,8 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   User: 'User',
+  ProfileVisibility: 'ProfileVisibility',
+  NicknameChange: 'NicknameChange',
   ExternalIdentity: 'ExternalIdentity',
   OidcTransaction: 'OidcTransaction',
   OAuthProfileTransaction: 'OAuthProfileTransaction',
@@ -87,12 +89,36 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const UserScalarFieldEnum = {
   id: 'id',
   displayName: 'displayName',
+  bio: 'bio',
+  avatarObjectKey: 'avatarObjectKey',
+  avatarUpdatedAt: 'avatarUpdatedAt',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const ProfileVisibilityScalarFieldEnum = {
+  userId: 'userId',
+  bio: 'bio',
+  avatar: 'avatar',
+  email: 'email',
+  phone: 'phone',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProfileVisibilityScalarFieldEnum = (typeof ProfileVisibilityScalarFieldEnum)[keyof typeof ProfileVisibilityScalarFieldEnum]
+
+
+export const NicknameChangeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  changedAt: 'changedAt'
+} as const
+
+export type NicknameChangeScalarFieldEnum = (typeof NicknameChangeScalarFieldEnum)[keyof typeof NicknameChangeScalarFieldEnum]
 
 
 export const ExternalIdentityScalarFieldEnum = {

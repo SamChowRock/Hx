@@ -398,6 +398,8 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   User: 'User',
+  ProfileVisibility: 'ProfileVisibility',
+  NicknameChange: 'NicknameChange',
   ExternalIdentity: 'ExternalIdentity',
   OidcTransaction: 'OidcTransaction',
   OAuthProfileTransaction: 'OAuthProfileTransaction',
@@ -427,7 +429,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "externalIdentity" | "oidcTransaction" | "oAuthProfileTransaction" | "userContact" | "passwordCredential" | "organization" | "project" | "membership" | "session" | "registrationIntent" | "phoneRegistrationIntent" | "passwordResetIntent" | "auditEvent" | "outboxEvent"
+    modelProps: "user" | "profileVisibility" | "nicknameChange" | "externalIdentity" | "oidcTransaction" | "oAuthProfileTransaction" | "userContact" | "passwordCredential" | "organization" | "project" | "membership" | "session" | "registrationIntent" | "phoneRegistrationIntent" | "passwordResetIntent" | "auditEvent" | "outboxEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -502,6 +504,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.UserCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.UserCountAggregateOutputType> | number
+        }
+      }
+    }
+    ProfileVisibility: {
+      payload: Prisma.$ProfileVisibilityPayload<ExtArgs>
+      fields: Prisma.ProfileVisibilityFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ProfileVisibilityFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ProfileVisibilityFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload>
+        }
+        findFirst: {
+          args: Prisma.ProfileVisibilityFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ProfileVisibilityFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload>
+        }
+        findMany: {
+          args: Prisma.ProfileVisibilityFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload>[]
+        }
+        create: {
+          args: Prisma.ProfileVisibilityCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload>
+        }
+        createMany: {
+          args: Prisma.ProfileVisibilityCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ProfileVisibilityCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload>[]
+        }
+        delete: {
+          args: Prisma.ProfileVisibilityDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload>
+        }
+        update: {
+          args: Prisma.ProfileVisibilityUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload>
+        }
+        deleteMany: {
+          args: Prisma.ProfileVisibilityDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ProfileVisibilityUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ProfileVisibilityUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload>[]
+        }
+        upsert: {
+          args: Prisma.ProfileVisibilityUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProfileVisibilityPayload>
+        }
+        aggregate: {
+          args: Prisma.ProfileVisibilityAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateProfileVisibility>
+        }
+        groupBy: {
+          args: Prisma.ProfileVisibilityGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProfileVisibilityGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ProfileVisibilityCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProfileVisibilityCountAggregateOutputType> | number
+        }
+      }
+    }
+    NicknameChange: {
+      payload: Prisma.$NicknameChangePayload<ExtArgs>
+      fields: Prisma.NicknameChangeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.NicknameChangeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.NicknameChangeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload>
+        }
+        findFirst: {
+          args: Prisma.NicknameChangeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.NicknameChangeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload>
+        }
+        findMany: {
+          args: Prisma.NicknameChangeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload>[]
+        }
+        create: {
+          args: Prisma.NicknameChangeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload>
+        }
+        createMany: {
+          args: Prisma.NicknameChangeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.NicknameChangeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload>[]
+        }
+        delete: {
+          args: Prisma.NicknameChangeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload>
+        }
+        update: {
+          args: Prisma.NicknameChangeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload>
+        }
+        deleteMany: {
+          args: Prisma.NicknameChangeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.NicknameChangeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.NicknameChangeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload>[]
+        }
+        upsert: {
+          args: Prisma.NicknameChangeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$NicknameChangePayload>
+        }
+        aggregate: {
+          args: Prisma.NicknameChangeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateNicknameChange>
+        }
+        groupBy: {
+          args: Prisma.NicknameChangeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NicknameChangeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.NicknameChangeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.NicknameChangeCountAggregateOutputType> | number
         }
       }
     }
@@ -1583,12 +1733,36 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const UserScalarFieldEnum = {
   id: 'id',
   displayName: 'displayName',
+  bio: 'bio',
+  avatarObjectKey: 'avatarObjectKey',
+  avatarUpdatedAt: 'avatarUpdatedAt',
   status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const ProfileVisibilityScalarFieldEnum = {
+  userId: 'userId',
+  bio: 'bio',
+  avatar: 'avatar',
+  email: 'email',
+  phone: 'phone',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ProfileVisibilityScalarFieldEnum = (typeof ProfileVisibilityScalarFieldEnum)[keyof typeof ProfileVisibilityScalarFieldEnum]
+
+
+export const NicknameChangeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  changedAt: 'changedAt'
+} as const
+
+export type NicknameChangeScalarFieldEnum = (typeof NicknameChangeScalarFieldEnum)[keyof typeof NicknameChangeScalarFieldEnum]
 
 
 export const ExternalIdentityScalarFieldEnum = {
@@ -1844,6 +2018,20 @@ export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 
  * Reference to a field of type 'String[]'
  */
 export type ListStringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String[]'>
+
+
+
+/**
+ * Reference to a field of type 'DateTime'
+ */
+export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+
+
+
+/**
+ * Reference to a field of type 'DateTime[]'
+ */
+export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
     
 
 
@@ -1862,16 +2050,16 @@ export type ListEnumUserStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$P
 
 
 /**
- * Reference to a field of type 'DateTime'
+ * Reference to a field of type 'ProfileFieldVisibility'
  */
-export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime'>
+export type EnumProfileFieldVisibilityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProfileFieldVisibility'>
     
 
 
 /**
- * Reference to a field of type 'DateTime[]'
+ * Reference to a field of type 'ProfileFieldVisibility[]'
  */
-export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+export type ListEnumProfileFieldVisibilityFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProfileFieldVisibility[]'>
     
 
 
@@ -2131,6 +2319,8 @@ export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions 
 export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
+  profileVisibility?: Prisma.ProfileVisibilityOmit
+  nicknameChange?: Prisma.NicknameChangeOmit
   externalIdentity?: Prisma.ExternalIdentityOmit
   oidcTransaction?: Prisma.OidcTransactionOmit
   oAuthProfileTransaction?: Prisma.OAuthProfileTransactionOmit
@@ -2207,4 +2397,3 @@ export type PrismaAction =
  * `PrismaClient` proxy available in interactive transactions.
  */
 export type TransactionClient = Omit<DefaultPrismaClient, runtime.ITXClientDenyList>
-

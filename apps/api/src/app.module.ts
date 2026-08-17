@@ -11,6 +11,7 @@ import { AuthorizationModule } from './authorization/authorization.module';
 import { IdentityModule } from './identity/identity.module';
 import { ProjectsModule } from './projects/projects.module';
 import { OrganizationsModule } from './organizations/organizations.module';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
     AuthorizationModule,
     ProjectsModule,
     OrganizationsModule,
+    ProfileModule,
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]),
     LoggerModule.forRoot({
       forRoutes: [{ path: '{*path}', method: RequestMethod.ALL }],

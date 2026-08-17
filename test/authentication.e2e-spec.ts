@@ -43,7 +43,7 @@ describe('browser authentication (e2e)', () => {
 
   beforeEach(async () => {
     await database.$executeRawUnsafe(
-      'TRUNCATE TABLE outbox_events, oauth_profile_transactions, oidc_transactions, password_reset_intents, phone_registration_intents, registration_intents, audit_events, projects, memberships, organizations, sessions, password_credentials, user_contacts, external_identities, users CASCADE',
+      'TRUNCATE TABLE nickname_changes, outbox_events, oauth_profile_transactions, oidc_transactions, password_reset_intents, phone_registration_intents, registration_intents, audit_events, projects, memberships, organizations, sessions, password_credentials, user_contacts, external_identities, users CASCADE',
     );
   });
 

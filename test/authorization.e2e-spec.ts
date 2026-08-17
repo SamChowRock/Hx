@@ -40,7 +40,7 @@ describe('tenant authorization (e2e)', () => {
 
   beforeEach(async () => {
     await database.$executeRawUnsafe(
-      'TRUNCATE TABLE outbox_events, oauth_profile_transactions, oidc_transactions, password_reset_intents, phone_registration_intents, registration_intents, audit_events, projects, memberships, organizations, sessions, password_credentials, user_contacts, external_identities, users CASCADE',
+      'TRUNCATE TABLE nickname_changes, outbox_events, oauth_profile_transactions, oidc_transactions, password_reset_intents, phone_registration_intents, registration_intents, audit_events, projects, memberships, organizations, sessions, password_credentials, user_contacts, external_identities, users CASCADE',
     );
     const expiry = new Date(Date.now() + 60 * 60 * 1000);
     await database.organization.create({

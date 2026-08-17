@@ -9,6 +9,8 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/User.js'
+export type * from './models/ProfileVisibility.js'
+export type * from './models/NicknameChange.js'
 export type * from './models/ExternalIdentity.js'
 export type * from './models/OidcTransaction.js'
 export type * from './models/OAuthProfileTransaction.js'

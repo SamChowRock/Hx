@@ -26,6 +26,14 @@ export const ContactType = {
 export type ContactType = (typeof ContactType)[keyof typeof ContactType]
 
 
+export const ProfileFieldVisibility = {
+  PRIVATE: 'PRIVATE',
+  AUTHENTICATED: 'AUTHENTICATED'
+} as const
+
+export type ProfileFieldVisibility = (typeof ProfileFieldVisibility)[keyof typeof ProfileFieldVisibility]
+
+
 export const OrganizationRole = {
   OWNER: 'OWNER',
   ADMIN: 'ADMIN',
