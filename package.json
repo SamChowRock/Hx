@@ -47,7 +47,7 @@
     "libphonenumber-js": "^1.13.10",
     "nestjs-pino": "^4.4.0",
     "nodemailer": "^9.0.5",
-    "openid-client": "^6.8.4",
+    "openid-client": "^6.8.5",
     "pg": "^8.23.0",
     "pino": "^9.6.0",
     "pino-http": "^10.3.0",
