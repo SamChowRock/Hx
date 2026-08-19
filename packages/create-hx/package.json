@@ -1,0 +1,37 @@
+{
+  "name": "create-hx",
+  "version": "0.1.0",
+  "description": "Create a production-oriented Hx NestJS project",
+  "type": "module",
+  "bin": {
+    "create-hx": "./bin/create-hx.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage",
+    "pack:check": "node ./scripts/check-package-contents.js"
+  },
+  "engines": {
+    "node": ">=24.19.0 <25",
+    "pnpm": ">=11.21.0 <12"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamChowRock/Hx.git",
+    "directory": "packages/create-hx"
+  },
+  "private": false,
+  "dependencies": {
+    "tar": "^7.5.22"
+  },
+  "packageManager": "pnpm@11.21.0"
+}
