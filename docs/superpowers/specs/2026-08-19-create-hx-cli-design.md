@@ -360,5 +360,372 @@ The feature is complete when all of the following are true:
 6. Existing non-empty targets are rejected before download and no existing entry is changed.
 7. Corrupt, unsafe, incomplete, or incompatible downloads leave no scaffold files in the target.
 8. The CLI never installs dependencies, initializes Git, or starts services.
-9. Unit, archive, filesystem, local HTTP, repository fixture, and package-content tests pass on Node.js 24.19.0.
+9. Unit, archive, filesystem, local HTTPS, repository fixture, and package-content tests pass on Node.js 24.19.0.
 10. The source-only publish workflow validates the tag, tests the package, checks npm contents, and is ready for npm Trusted Publishing configuration.
+
+---
+
+# `create-hx` CLI 设计（中文版）
+
+**日期：** 2026-08-19
+
+**状态：** 已在对话中确认，等待书面规格审阅
+
+## 摘要
+
+在 Hx 仓库中新增一个可独立发布到 npm 的初始化工具 `create-hx`。该 CLI 可以在新目录或空目录中创建一个基于 Hx、可运行的项目，同时不复制仓库中的教程、长篇文档、蓝图、模板元数据及 CLI 包自身。
+
+CLI 不会在 npm 包中内置第二份脚手架。每次调用都会从公开的 `SamChowRock/Hx` GitHub 仓库下载当前 `main` 分支归档，读取归档内的模板清单，暂存经过筛选的项目，应用少量项目级转换，然后将完整结果提交到用户指定的目录。
+
+## 目标
+
+- 支持以下初始化调用形式：
+
+  ```bash
+  pnpm create hx my-app
+  pnpm create hx .
+  npm create hx@latest my-app
+  ```
+
+- 将 CLI 作为独立的公开 npm 包 `create-hx` 发布。
+- 将 CLI 源码保存在当前仓库的 `packages/create-hx/` 中，但不加入 Hx 的 pnpm workspace。
+- 每次调用都使用最新的 Hx `main` 分支作为模板来源。
+- 生成内容仅包含与脚手架有关的应用代码、测试、Migration、工具配置和运行时配置。
+- 绝不把 `packages/create-hx/` 复制到生成项目中。
+- 拒绝写入非空目录，并且绝不覆盖现有文件。
+- 依赖安装和 Git 初始化交由用户执行。
+- 提供可操作的错误信息，并清理未完成的中间产物。
+
+## 非目标
+
+- 把脚手架内置在 npm 包中。
+- 从固定 tag 或 commit 生成可复现的历史模板。
+- 在首个版本中提供公开的 `--ref`、`--force`、`--install`、`--git` 或仓库覆盖参数。
+- 交互式选择功能或可选 Hx 模块。
+- 支持私有 GitHub 仓库或 GitHub 身份验证。
+- 代替用户运行 `pnpm install`、`git init`、数据库 Migration、Docker 或应用测试。
+- 将开发者工作站上的实际发包操作纳入 CLI 实现范围。
+- 选择或修改仓库的软件许可证。
+
+## 仓库布局与包边界
+
+本次变更新增以下由源仓库维护的区域：
+
+```text
+.hx-template/
+  manifest.json
+  README.md
+packages/create-hx/
+  bin/create-hx.js
+  src/
+  test/
+  package.json
+  pnpm-lock.yaml
+  README.md
+.github/workflows/
+  create-hx-ci.yml
+  publish-create-hx.yml
+```
+
+`packages/create-hx/` 拥有自己的包元数据、依赖锁文件、脚本、测试和 npm 版本。它不会加入 `pnpm-workspace.yaml`。这样可以避免 CLI 依赖及 `packages/create-hx` importer 进入脚手架根目录的 `pnpm-lock.yaml`。
+
+现有根 workspace 仍然只包含 `apps/*` 和 `libs/*`。如果根目录的格式化和 Lint 规则现有文件 glob 会匹配 CLI 源码，它们仍可检查这些源码；但 CLI 的依赖安装和测试必须在 `packages/create-hx/` 中执行，并关闭 workspace 自动发现。
+
+CLI 包采用无需构建的 ESM，目标 Node.js 版本为 `>=24.19.0 <25`，与生成的 Hx 项目引擎要求一致。它的 npm `files` 清单只包含可执行文件、运行时源码和包 README。测试 Fixture、测试代码、包自己的锁文件以及仓库模板元数据都不会发布。
+
+## 模板所有权模型
+
+Hx 始终是脚手架代码的唯一事实来源。`.hx-template/` 只保存无法直接从源仓库原样复制的元数据和少量覆盖内容：
+
+- `manifest.json` 描述排除项、输出必需路径、README 覆盖文件、仅供源仓库使用的文本区块，以及 `package.json` 转换。
+- `README.md` 是写入生成项目根目录的精简 README。
+
+清单使用明确的路径前缀而不是 glob。一个路径前缀只匹配该路径本身或其后代，不会匹配名称相似的同级路径。初始概念结构如下：
+
+```json
+{
+  "schemaVersion": 1,
+  "exclude": [
+    ".hx-template",
+    ".github/workflows/create-hx-ci.yml",
+    ".github/workflows/publish-create-hx.yml",
+    "BACKEND_SCAFFOLD_BLUEPRINT.md",
+    "docs",
+    "packages/create-hx",
+    "scripts/tutorial",
+    "tutorials"
+  ],
+  "required": [
+    ".env.example",
+    "apps/api/src/main.ts",
+    "apps/worker/src/main.ts",
+    "docker-compose.yml",
+    "package.json",
+    "pnpm-lock.yaml",
+    "prisma/schema.prisma"
+  ],
+  "overrides": {
+    "README.md": ".hx-template/README.md"
+  },
+  "stripBlocks": {
+    ".github/workflows/ci.yml": ["tutorial"]
+  },
+  "packageJson": {
+    "removeScriptPrefixes": ["tutorial:"]
+  }
+}
+```
+
+仓库中提交的清单具有最终权威性；CLI 只接受 `schemaVersion: 1`。未知的顶层字段会被拒绝，避免清单变化后，旧版 CLI 在没有提示的情况下生成错误转换的项目。
+
+未来新增的大多数脚手架文件都会自动进入生成项目。只有在添加源仓库专用内容时，贡献者才需要更新排除清单。这一设计与跟随 `main` 的选择一致：优先降低维护成本，而不是保证历史可复现性。
+
+## 仅供源仓库使用的区块与覆盖文件
+
+Hx 源仓库工作流继续保留教程验证。`.github/workflows/ci.yml` 中仅供教程使用的步骤由成对注释包围：
+
+```yaml
+# hx-template:exclude-start tutorial
+# source-only tutorial steps
+# hx-template:exclude-end tutorial
+```
+
+模板转换器会删除标记及匹配标记之间的所有内容。以下情况都会被拒绝：区块嵌套、重复的开始标记、未配对标记、未知区块名，以及文件中缺少清单要求的任一区块。这样可以让源工作流发生漂移时明确失败，而不是把损坏的 CI 泄漏到生成项目中。
+
+生成项目的 README 来源于 `.hx-template/README.md`。它只包含项目名、前置要求、设置命令、本地服务地址、验证命令，以及 API 和 Worker 的简短说明。它不包含教程链接、里程碑叙述、蓝图引用或 `.hx-template/` 引用。
+
+README 覆盖文件中包含一个且仅有一个精确的 `{{PROJECT_NAME}}` token。转换器要求它恰好出现一次，并将其替换为已经校验的项目名。不支持其他覆盖 token 语法。
+
+`package.json` 以结构化方式解析。转换器会：
+
+- 将 `name` 替换为已经校验的目标目录 basename；
+- 保留 `private`、`version`、engines、dependencies、devDependencies 以及所有非教程脚本；
+- 删除 key 以 `tutorial:` 开头的所有脚本；
+- 继续使用仓库现有的两个空格 JSON 格式，并在文件末尾保留换行。
+
+不会对任意源码文件执行文本搜索替换。
+
+## 命令行契约
+
+公开语法如下：
+
+```text
+create-hx [directory]
+create-hx --help
+create-hx --version
+```
+
+`directory` 默认值为 `.`，可以是相对路径或绝对路径。CLI 根据当前工作目录解析它，并使用路径最后一段作为生成项目的 npm 包名。
+
+包名必须已经是合法、无 scope、小写的 npm 名称。CLI 不会静默规范化大写字母、空格、非 ASCII 字符、前导点或其他非法字符。校验失败时会报告派生出的名称，并要求用户选择类似 `my-app` 的小写目录名。
+
+未知选项、多个目录参数，以及由错误调用产生的缺失参数值都属于用法错误。用法错误以状态码 `1` 退出；`--help` 和 `--version` 以状态码 `0` 退出。
+
+首个版本无交互流程，也没有强制覆盖模式。
+
+## 目标目录安全
+
+发出网络请求之前，CLI 会解析并检查目标路径：
+
+- 目标不存在时，仅当父目录存在且可写才允许继续。
+- 目标已经存在时，它必须是目录，并且包含零个条目。
+- 隐藏文件、`.DS_Store`、`.gitkeep` 和已有的 `.git/` 目录都会使目标被视为非空。
+- 目标为已有文件、悬空符号链接或非目录类型时会被拒绝。
+- 即使某个异常环境把文件系统根目录报告为空，解析到文件系统根目录的目标也会被拒绝。
+
+提交暂存输出之前，CLI 会再次检查目标。如果其他进程已经添加了内容，初始化会中止且不会覆盖这些内容。
+
+如果目标原本不存在，staging 会在同一文件系统的目标同级位置使用随机名称目录，完成后通过重命名提交到目标位置。对于 `.` 这类已经存在的空目录，只有在所有校验完成后才复制文件。复制操作会记录自己创建的每条路径；失败时逐个删除记录的文件，并且只使用非递归的空目录删除操作移除记录的目录。其他进程并发添加的无关路径会被保留。CLI 绝不会递归删除未解析路径或用户指定的目标目录。
+
+## 下载与归档处理
+
+固定来源 URL 是 `SamChowRock/Hx` GitHub codeload 上 `refs/heads/main` 对应的 tarball。该仓库公开，首个版本不支持 token。
+
+下载器会：
+
+- 只接受 HTTPS；
+- 最多跟随五次 HTTPS 重定向；
+- 拒绝最终的非 2xx 响应；
+- 应用 30 秒无活动超时；
+- 压缩数据超过 100 MiB 时中止；
+- 将响应写入随机命名的临时文件；
+- 在成功、错误、`SIGINT` 或 `SIGTERM` 时删除临时文件。
+
+完整 tarball 的压缩网络载荷中必然包含 `packages/create-hx/`。归档扫描和解包过滤会确保这个目录永远不会实际写入 staging 目录或生成项目。
+
+归档处理会对下载文件执行两次读取：
+
+1. 定位并解析 `.hx-template/manifest.json` 及其引用的覆盖文件，但不解包仓库条目。
+2. 校验清单后，将允许的条目解包到 staging。
+
+GitHub 归档包含自动生成的顶层目录。归档读取器只移除一个公共顶层组件，并校验每个规范化后的仓库相对路径。只接受普通文件和目录。绝对路径、Windows 盘符路径、NUL 字节、规范化后为空的路径、`.`/`..` 穿越、符号链接、硬链接、设备文件、FIFO，以及单一公共根目录之外的归档条目都会被拒绝。
+
+解包器保留 `.husky/pre-commit` 等文件所需的可执行权限位，但不保留归档中的所有者信息。每个元数据或覆盖文件的未压缩大小上限为 1 MiB。重复文件路径会被拒绝。
+
+## 暂存、转换与提交流程
+
+一个编排函数负责完整初始化生命周期：
+
+1. 解析参数并派生项目名。
+2. 校验目标路径及其空目录状态。
+3. 分配临时下载路径和同级 staging 路径。
+4. 下载 `main` 归档。
+5. 读取并校验版本 1 清单及其引用的覆盖文件。
+6. 将允许的普通文件和目录解包到 staging。
+7. 应用区块删除、README 覆盖和结构化 `package.json` 修改。
+8. 校验清单中每个 `required` 路径都存在且文件类型正确。
+9. 校验所有排除路径前缀、`.hx-template/` 和 `packages/create-hx/` 均不存在。
+10. 再次检查目标仍然符合写入条件。
+11. 将 staging 输出提交到目标。
+12. 清理临时状态并打印下一步操作。
+
+第 1 至第 9 步全部成功之前，不会写入任何目标文件。
+
+## 成功输出
+
+成功时，CLI 会打印解析后的项目位置以及需要手动执行的后续步骤。对于命名的子目录，命令如下：
+
+```bash
+cd my-app
+git init
+pnpm install
+cp .env.example .env
+docker compose up --build -d
+```
+
+目标为 `.` 时会省略 `cd` 命令。Git 初始化出现在依赖安装之前，因为保留的 Husky `prepare` 脚本需要 Git 仓库。CLI 只打印这些命令，不会执行它们。
+
+## 错误处理与退出行为
+
+可预期错误使用简洁的 `Error: <message>` 格式写入 stderr，并以状态码 `1` 退出，包括：
+
+- 参数或包名无效；
+- 父目录不存在或不可写；
+- 目标目录已经存在且非空；
+- DNS、连接、重定向、超时、响应状态和大小限制失败；
+- tar 归档损坏或不受支持；
+- 清单缺失、格式错误、版本不受支持或内部不一致；
+- 不安全或重复的归档条目；
+- 必需脚手架输出缺失；
+- 转换标记或 JSON 处理失败；
+- 目标竞态及文件系统写入错误。
+
+可预期错误不打印 stack trace。只有存在 `CREATE_HX_DEBUG=1` 时，未预期的程序错误才会包含 stack。信号处理会中止活动 I/O、执行有界清理，并返回惯用的非零信号相关状态码。
+
+错误文本永远不包含响应 body、环境值、token 或完整归档内容。
+
+## 组件接口
+
+源码按职责拆分：
+
+- `bin/create-hx.js` 调用应用入口、写入最终输出并设置进程退出码。
+- `src/arguments.js` 解析受支持的参数，并返回解析后的目标和项目名。
+- `src/download.js` 把一个 HTTPS 资源下载到调用方拥有的临时路径。
+- `src/archive.js` 读取元数据条目，并解包通过校验的输出条目。
+- `src/manifest.js` 校验版本 1 schema，并提供精确的路径前缀判断能力。
+- `src/transform.js` 应用清单声明的区块、覆盖文件及 `package.json` 转换。
+- `src/scaffold.js` 协调校验、暂存、提交、回滚、清理和成功提示。
+
+为了测试，生产模块可通过内部函数参数注入文件系统路径、下载 URL、输出 writer、TLS 信任设置和资源限制。生产默认值始终强制使用固定 HTTPS URL、平台正常信任库、30 秒无活动超时和 100 MiB 限制。这些 seam 不会作为公开 CLI 选项暴露。
+
+## 测试策略
+
+CLI 使用 Node 内置 test runner 和真实的文件系统、归档行为。网络测试使用本地 HTTPS 服务器，并通过内部 TLS seam 传入每个测试专用的证书颁发机构，而不是 mock 请求行为。每项行为都采用测试先行方式开发。
+
+### 单元测试与聚焦集成测试覆盖
+
+- 默认 `.` 以及显式相对/绝对目录解析；
+- `--help`、`--version`、未知选项和额外参数；
+- 有效和无效的派生 npm 包名；
+- 不存在、空、非空、包含隐藏文件、文件、符号链接和根目录目标；
+- 成功下载、HTTPS 重定向策略、非 2xx 响应、超时、超大响应和中断传输；
+- 清单 schema、精确前缀匹配、未知字段、覆盖文件缺失和必需路径；
+- 损坏 tarball、多个归档根、路径穿越、绝对路径、重复路径、符号链接和硬链接；
+- 可执行权限位保留；
+- README 覆盖、区块删除成功和错误标记；
+- 项目名替换和删除全部 `tutorial:` 脚本；
+- 提交到新目标、提交到已有空目标、目标竞态，以及强制复制失败后的回滚；
+- 成功、可预期错误、未预期错误和进程信号之后的清理。
+
+### 仓库 Fixture 测试
+
+一个测试会根据当前 checkout 的仓库构建本地 tarball，通过内部 source URL seam 运行初始化器，并断言：
+
+- 清单要求的所有文件均存在；
+- `docs/`、`tutorials/`、`scripts/tutorial/`、`BACKEND_SCAFFOLD_BLUEPRINT.md`、`.hx-template/` 和 `packages/create-hx/` 均不存在；
+- CLI CI 和发布工作流不存在；
+- 生成的根包名与目标目录一致；
+- 不存在任何 `tutorial:` 脚本；
+- 不存在仅供教程使用的 CI 标记或命令；
+- 精简 README 不包含源仓库文档链接。
+
+该测试验证 pull request 中的本地仓库内容，不依赖远程 `main` 分支。
+
+### 包内容测试
+
+CI 在 `packages/create-hx/` 中运行 `npm pack --dry-run --json`，并断言即将发布的内容只有声明的运行时文件和 npm 必需元数据。测试会明确拒绝 npm tarball 中出现模板源码、测试、Fixture、本地锁文件和仓库文档。
+
+CLI 必需测试不会实时请求 GitHub。发布前可以手动对真实 `main` 执行 smoke test，但普通 pull request 不会依赖网络可用性。
+
+## 持续集成
+
+`.github/workflows/create-hx-ci.yml` 仅供源仓库使用，并由清单排除。CLI 包、`.hx-template/`、相关源工作流标记或该工作流自身发生变化时，它都会运行。它会关闭 pnpm workspace 自动发现来安装包本地依赖，然后在 Node.js 24.19.0 上运行 CLI 测试和包内容检查。
+
+现有 Hx 工作流继续测试脚手架和教程。其中仅供源仓库使用的教程步骤在 Hx 仓库中保持启用；只有生成输出会移除这些步骤。
+
+## 独立 npm 发布
+
+`packages/create-hx/package.json` 声明：
+
+- `name: "create-hx"`；
+- 从 `0.1.0` 开始的独立语义版本；
+- `create-hx` 的可执行文件映射；
+- `private: false`；
+- `publishConfig.access: "public"` 和 npm registry；
+- 准确的公开 `repository` URL 和 `directory: "packages/create-hx"`；
+- Node.js `>=24.19.0 <25`；
+- 严格限制的 npm `files` 清单。
+
+`.github/workflows/publish-create-hx.yml` 同样只供源仓库使用。匹配 `create-hx-vX.Y.Z` 的 tag 会触发它。发布前，工作流会：
+
+1. 校验 tag 版本与包版本完全一致；
+2. 根据包自己的锁文件安装依赖；
+3. 运行完整 CLI 测试套件；
+4. 运行并校验 `npm pack --dry-run --json`；
+5. 通过 Trusted Publishing/OIDC 发布到 npm。
+
+工作流成功之前，npm 包所有者必须把 `SamChowRock/Hx` 及准确的发布工作流配置为 trusted publisher，并允许 `npm publish`。工作流只申请 `contents: read` 和 `id-token: write` 权限。仓库中不保存长期 npm token。公开仓库及匹配的 `repository.url` 使 npm 可以自动附加 provenance。
+
+在设计阶段，`npm view create-hx` 返回 `E404`，说明目前没有公开包占用该名称。首次发布前必须再次检查可用性；只有成功发布后才能确立名称所有权。
+
+## 维护规则
+
+- 应用和平台变化不要求发布新版 CLI；未来调用会读取最新 `main` 归档。
+- “哪些内容属于脚手架”发生变化时，在同一个 pull request 中更新 `.hx-template/manifest.json`。
+- CLI 行为或 manifest schema 发生变化时，需要发布新的 `create-hx` 版本。
+- 破坏性清单变化使用新的整数 `schemaVersion`；旧版 CLI 会明确失败，而不会猜测处理方式。
+- 新增仅供源仓库使用的工作流时，必须显式排除。
+- 仓库 Fixture 测试负责阻止教程、文档、模板元数据或 CLI 被意外带入生成项目。
+
+## 权衡
+
+跟随 `main` 可以把同步和发布工作降到最低，但也意味着同一 CLI 版本在不同日期可能生成不同的源码快照。损坏的 `main` 可能暂时生成损坏的脚手架。这是已经接受的产品选择。
+
+下载完整 GitHub tarball 会传输被排除路径的压缩数据，其中包括 `packages/create-hx/`。过滤可以阻止这些路径写入磁盘，但不能节省其网络带宽。我们接受这一点，以换取无需 Git、无需大量 GitHub API 请求、单次完成且跨平台的快速下载。
+
+让 CLI 位于根 pnpm workspace 之外，可以避免锁文件污染，代价是需要单独的包本地安装和 CI job。我们接受这一点，因为独立发包和干净的生成输出比单一的 workspace 全局安装命令更重要。
+
+## 验收条件
+
+满足以下全部条件时，功能才算完成：
+
+1. `pnpm create hx my-app`、`pnpm create hx .` 和 `npm create hx@latest my-app` 都能解析到已发布的 `create-hx` 可执行契约。
+2. 本地仓库归档可以生成一个包含 Hx 应用代码、Prisma Migration、测试、Docker/工具配置、GitHub 脚手架 CI、Husky 和根锁文件的项目。
+3. 生成输出不包含任何已记录的排除路径，尤其是 `packages/create-hx/`。
+4. 生成的 `package.json.name` 与已校验的目标 basename 一致，并且不存在任何 `tutorial:` 脚本。
+5. 生成的 README 和 CI 不包含教程引用或已删除文档的引用。
+6. 下载前拒绝已有的非空目标，并且不修改任何现有条目。
+7. 损坏、不安全、不完整或不兼容的下载不会在目标中留下脚手架文件。
+8. CLI 永远不会安装依赖、初始化 Git 或启动服务。
+9. 单元、归档、文件系统、本地 HTTPS、仓库 Fixture 和包内容测试在 Node.js 24.19.0 上全部通过。
+10. 仅供源仓库使用的发布工作流能够校验 tag、测试包、检查 npm 内容，并且已经准备好配置 npm Trusted Publishing。
