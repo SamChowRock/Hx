@@ -191,7 +191,7 @@ Archive processing has two read passes over the downloaded file:
 1. Locate and parse `.hx-template/manifest.json` and the overlay files referenced by it without extracting repository entries.
 2. Extract allowed entries into staging after validating the manifest.
 
-GitHub archives contain a generated leading directory. The archive reader strips exactly one common leading component and validates every normalized repository-relative path. It accepts regular files and directories only. It rejects absolute paths, Windows drive paths, NUL bytes, empty normalized paths, `.`/`..` traversal, symbolic links, hard links, devices, FIFOs, and archive entries outside the single common root.
+GitHub archives contain a generated leading directory. The archive reader strips exactly one common leading component and validates every normalized repository-relative path. The sole structural entry for that common root directory is ignored; every other empty normalized path is rejected. It accepts regular files and directories only. It rejects absolute paths, Windows drive paths, NUL bytes, `.`/`..` traversal, symbolic links, hard links, devices, FIFOs, and archive entries outside the single common root.
 
 The extractor preserves executable permission bits needed by files such as `.husky/pre-commit`, while not preserving archive ownership. Metadata and overlay files have a 1 MiB uncompressed size limit each. Duplicate file paths are rejected.
 
@@ -558,7 +558,7 @@ create-hx --version
 1. 定位并解析 `.hx-template/manifest.json` 及其引用的覆盖文件，但不解包仓库条目。
 2. 校验清单后，将允许的条目解包到 staging。
 
-GitHub 归档包含自动生成的顶层目录。归档读取器只移除一个公共顶层组件，并校验每个规范化后的仓库相对路径。只接受普通文件和目录。绝对路径、Windows 盘符路径、NUL 字节、规范化后为空的路径、`.`/`..` 穿越、符号链接、硬链接、设备文件、FIFO，以及单一公共根目录之外的归档条目都会被拒绝。
+GitHub 归档包含自动生成的顶层目录。归档读取器只移除一个公共顶层组件，并校验每个规范化后的仓库相对路径。唯一的公共根目录结构条目会被忽略；除此以外，任何规范化后为空的路径都会被拒绝。只接受普通文件和目录。绝对路径、Windows 盘符路径、NUL 字节、`.`/`..` 穿越、符号链接、硬链接、设备文件、FIFO，以及单一公共根目录之外的归档条目都会被拒绝。
 
 解包器保留 `.husky/pre-commit` 等文件所需的可执行权限位，但不保留归档中的所有者信息。每个元数据或覆盖文件的未压缩大小上限为 1 MiB。重复文件路径会被拒绝。
 
