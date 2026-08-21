@@ -47,6 +47,125 @@ function comparePaths(left, right) {
   return 0;
 }
 
+function defineEntry(object, key, value) {
+  Object.defineProperty(object, key, {
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
+}
+
+function assertNoDuplicateJsonKeys(jsonText) {
+  let index = 0;
+
+  function skipWhitespace() {
+    while (/\s/.test(jsonText[index] ?? '')) {
+      index += 1;
+    }
+  }
+
+  function parseString() {
+    skipWhitespace();
+    if (jsonText[index] !== '"') {
+      throw new UsageError('Template state is not valid JSON.');
+    }
+    const start = index;
+    index += 1;
+    while (index < jsonText.length) {
+      if (jsonText[index] === '\\') {
+        index += 2;
+      } else if (jsonText[index] === '"') {
+        index += 1;
+        return JSON.parse(jsonText.slice(start, index));
+      } else {
+        index += 1;
+      }
+    }
+    throw new UsageError('Template state is not valid JSON.');
+  }
+
+  function parseArray() {
+    index += 1;
+    skipWhitespace();
+    if (jsonText[index] === ']') {
+      index += 1;
+      return;
+    }
+    while (index < jsonText.length) {
+      parseValue();
+      skipWhitespace();
+      if (jsonText[index] === ']') {
+        index += 1;
+        return;
+      }
+      if (jsonText[index] !== ',') {
+        throw new UsageError('Template state is not valid JSON.');
+      }
+      index += 1;
+    }
+    throw new UsageError('Template state is not valid JSON.');
+  }
+
+  function parseObject() {
+    index += 1;
+    const keys = new Set();
+    skipWhitespace();
+    if (jsonText[index] === '}') {
+      index += 1;
+      return;
+    }
+    while (index < jsonText.length) {
+      const key = parseString();
+      if (keys.has(key)) {
+        throw new UsageError(`Template state contains a duplicate JSON object key: ${key}`);
+      }
+      keys.add(key);
+      skipWhitespace();
+      if (jsonText[index] !== ':') {
+        throw new UsageError('Template state is not valid JSON.');
+      }
+      index += 1;
+      parseValue();
+      skipWhitespace();
+      if (jsonText[index] === '}') {
+        index += 1;
+        return;
+      }
+      if (jsonText[index] !== ',') {
+        throw new UsageError('Template state is not valid JSON.');
+      }
+      index += 1;
+    }
+    throw new UsageError('Template state is not valid JSON.');
+  }
+
+  function parseValue() {
+    skipWhitespace();
+    if (jsonText[index] === '{') {
+      parseObject();
+    } else if (jsonText[index] === '[') {
+      parseArray();
+    } else if (jsonText[index] === '"') {
+      parseString();
+    } else {
+      const start = index;
+      while (index < jsonText.length && !/[\s,}\]]/.test(jsonText[index])) {
+        index += 1;
+      }
+      if (index === start) {
+        throw new UsageError('Template state is not valid JSON.');
+      }
+    }
+  }
+
+  parseValue();
+  skipWhitespace();
+  if (index !== jsonText.length) {
+    throw new UsageError('Template state is not valid JSON.');
+  }
+}
+
 function isReservedPath(repositoryPath) {
   return (
     repositoryPath === LOCK_FILE_NAME ||
@@ -113,7 +232,7 @@ function copyFiles(value) {
   const files = {};
   for (const repositoryPath of paths) {
     assertStatePath(repositoryPath);
-    files[repositoryPath] = copyFingerprint(value[repositoryPath], repositoryPath);
+    defineEntry(files, repositoryPath, copyFingerprint(value[repositoryPath], repositoryPath));
   }
   return Object.freeze(files);
 }
@@ -170,7 +289,7 @@ export async function fileFingerprint(filePath) {
 
 export async function scanTemplateState(rootPath, { projectName }) {
   validateProjectName(projectName);
-  const discoveredFiles = {};
+  const discoveredFiles = new Map();
 
   async function walk(directory, relativeDirectory = '') {
     const entries = await readdir(directory, { withFileTypes: true });
@@ -185,7 +304,7 @@ export async function scanTemplateState(rootPath, { projectName }) {
       if (entry.isDirectory()) {
         await walk(entryPath, repositoryPath);
       } else if (entry.isFile()) {
-        discoveredFiles[repositoryPath] = await fileFingerprint(entryPath);
+        discoveredFiles.set(repositoryPath, await fileFingerprint(entryPath));
       } else {
         throw new Error(`Template state only supports regular files and directories: ${entryPath}`);
       }
@@ -194,8 +313,8 @@ export async function scanTemplateState(rootPath, { projectName }) {
 
   await walk(rootPath);
   const files = {};
-  for (const repositoryPath of Object.keys(discoveredFiles).sort(comparePaths)) {
-    files[repositoryPath] = discoveredFiles[repositoryPath];
+  for (const repositoryPath of [...discoveredFiles.keys()].sort(comparePaths)) {
+    defineEntry(files, repositoryPath, discoveredFiles.get(repositoryPath));
   }
   return validateTemplateState({
     schemaVersion: 1,
@@ -209,6 +328,7 @@ export async function scanTemplateState(rootPath, { projectName }) {
 export function parseTemplateState(jsonText) {
   let value;
   try {
+    assertNoDuplicateJsonKeys(jsonText);
     value = JSON.parse(jsonText);
   } catch (error) {
     throw new UsageError(`Template state is not valid JSON: ${error.message}`);

@@ -7,6 +7,7 @@ const RESERVED_NAMES = new Set(['node_modules', 'favicon.ico']);
 
 export function validateProjectName(name) {
   if (
+    typeof name !== 'string' ||
     name.length === 0 ||
     name.length > MAX_PACKAGE_NAME_LENGTH ||
     !SAFE_UNSCOPED_NAME.test(name) ||

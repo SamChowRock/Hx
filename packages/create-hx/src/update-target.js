@@ -32,6 +32,8 @@ export const ADOPTION_ANCHORS = Object.freeze([
   'prisma/schema.prisma',
 ]);
 
+const controlledPathObservations = new WeakMap();
+
 function identityOf(entryStat) {
   return Object.freeze({ dev: entryStat.dev, ino: entryStat.ino });
 }
@@ -166,9 +168,17 @@ export async function inspectUpdateTarget(target) {
   let baseline = null;
   let adoption = true;
   let projectName = packageName;
+  let lockIdentity = null;
+  let lockFingerprint = null;
 
   if (lockEntry) {
     baseline = parseTemplateState(await readRegularFile(targetPath, LOCK_FILE_NAME));
+    const recheckedLock = await lstat(lockEntry.entryPath);
+    if (!hasIdentity(recheckedLock, identityOf(lockEntry.entryStat))) {
+      throw new Error('The template lock changed while the project was being inspected.');
+    }
+    lockIdentity = identityOf(recheckedLock);
+    lockFingerprint = await fileFingerprint(lockEntry.entryPath);
     adoption = false;
     projectName = baseline.projectName;
   } else {
@@ -190,18 +200,69 @@ export async function inspectUpdateTarget(target) {
     packageName,
     baseline,
     adoption,
+    lockIdentity,
+    lockFingerprint,
   });
 }
 
-async function controlledFingerprint(rootPath, repositoryPath) {
-  const inspected = await inspectRepositoryEntry(rootPath, repositoryPath);
-  if (!inspected) {
-    return null;
+async function inspectControlledPath(rootPath, repositoryPath) {
+  const parts = repositoryPath.split('/');
+  const observations = [];
+  let entryPath = rootPath;
+  for (let index = 0; index < parts.length; index += 1) {
+    entryPath = path.join(entryPath, parts[index]);
+    const observedPath = parts.slice(0, index + 1).join('/');
+    const entryStat = await optionalLstat(entryPath);
+    if (!entryStat) {
+      observations.push(Object.freeze({ path: observedPath, missing: true }));
+      return { fingerprint: null, observations };
+    }
+    if (index < parts.length - 1) {
+      if (!entryStat.isDirectory() || entryStat.isSymbolicLink()) {
+        throw new Error(`Controlled project path has an unsafe ancestor: ${repositoryPath}`);
+      }
+      observations.push(
+        Object.freeze({
+          path: observedPath,
+          type: 'directory',
+          identity: identityOf(entryStat),
+        }),
+      );
+    } else {
+      if (!entryStat.isFile() || entryStat.isSymbolicLink()) {
+        throw new Error(`Controlled project path must be a regular file: ${repositoryPath}`);
+      }
+      const fingerprint = await fileFingerprint(entryPath);
+      const recheckedStat = await lstat(entryPath);
+      if (!hasIdentity(recheckedStat, identityOf(entryStat))) {
+        throw new Error(
+          `Controlled project path changed while it was inspected: ${repositoryPath}`,
+        );
+      }
+      observations.push(
+        Object.freeze({
+          path: observedPath,
+          type: 'file',
+          identity: identityOf(entryStat),
+        }),
+      );
+      return { fingerprint, observations };
+    }
   }
-  if (!inspected.entryStat.isFile() || inspected.entryStat.isSymbolicLink()) {
-    throw new Error(`Controlled project path must be a regular file: ${repositoryPath}`);
+  return { fingerprint: null, observations };
+}
+
+function mergeObservation(observations, observation) {
+  const previous = observations.get(observation.path);
+  if (
+    previous &&
+    (previous.missing !== observation.missing ||
+      previous.type !== observation.type ||
+      (previous.identity && !hasIdentity(previous.identity, observation.identity)))
+  ) {
+    throw new Error(`Controlled project path changed during planning: ${observation.path}`);
   }
-  return fileFingerprint(inspected.entryPath);
+  observations.set(observation.path, observation);
 }
 
 export async function collectControlledState(target, incomingState) {
@@ -212,12 +273,23 @@ export async function collectControlledState(target, incomingState) {
     ...Object.keys(validatedIncoming.files),
   ]);
   const localFiles = {};
+  const observations = new Map();
   for (const repositoryPath of [...controlledPaths].sort((left, right) =>
     left.localeCompare(right, 'en'),
   )) {
-    localFiles[repositoryPath] = await controlledFingerprint(target.targetPath, repositoryPath);
+    const inspected = await inspectControlledPath(target.targetPath, repositoryPath);
+    for (const observation of inspected.observations) {
+      mergeObservation(observations, observation);
+    }
+    Object.defineProperty(localFiles, repositoryPath, {
+      value: inspected.fingerprint,
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
   }
   await assertRootIdentity(target);
+  controlledPathObservations.set(target, observations);
   return Object.freeze(localFiles);
 }
 
@@ -264,6 +336,68 @@ async function assertTransactionRoot(target, operations) {
     !hasIdentity(rootStat, target.rootIdentity)
   ) {
     throw new Error('The project root changed while the template update was being applied.');
+  }
+}
+
+function isTransactionDirectory(entryPath, entryStat, createdDirectories) {
+  return createdDirectories.some(
+    (directory) => directory.path === entryPath && hasIdentity(entryStat, directory.identity),
+  );
+}
+
+async function assertPlannedObservation({ target, observation, operations, createdDirectories }) {
+  const entryPath = path.join(target.targetPath, ...observation.path.split('/'));
+  const current = await optionalOperationLstat(entryPath, operations);
+  if (observation.missing) {
+    if (current && !isTransactionDirectory(entryPath, current, createdDirectories)) {
+      throw new Error(`A path changed after the update was planned: ${observation.path}`);
+    }
+    return;
+  }
+  if (
+    !current ||
+    !hasIdentity(current, observation.identity) ||
+    current.isSymbolicLink() ||
+    (observation.type === 'directory' && !current.isDirectory()) ||
+    (observation.type === 'file' && !current.isFile())
+  ) {
+    throw new Error(`A path changed after the update was planned: ${observation.path}`);
+  }
+}
+
+async function assertPlannedPath({
+  target,
+  repositoryPath,
+  operations,
+  createdDirectories,
+  allowBackedUpFile = false,
+}) {
+  const observations = controlledPathObservations.get(target);
+  if (!observations) {
+    throw new Error('Controlled project state must be collected before applying an update.');
+  }
+  const parts = repositoryPath.split('/');
+  for (let index = 0; index < parts.length; index += 1) {
+    const observation = observations.get(parts.slice(0, index + 1).join('/'));
+    if (observation) {
+      if (
+        allowBackedUpFile &&
+        index === parts.length - 1 &&
+        observation.type === 'file' &&
+        !(await optionalOperationLstat(
+          path.join(target.targetPath, ...observation.path.split('/')),
+          operations,
+        ))
+      ) {
+        continue;
+      }
+      await assertPlannedObservation({
+        target,
+        observation,
+        operations,
+        createdDirectories,
+      });
+    }
   }
 }
 
@@ -324,27 +458,45 @@ async function createTargetDirectories({ target, repositoryPath, operations, cre
     directoryPath = path.join(directoryPath, part);
     const current = await optionalOperationLstat(directoryPath, operations);
     if (current) {
+      const observedPath = path
+        .relative(target.targetPath, directoryPath)
+        .split(path.sep)
+        .join('/');
+      const observation = controlledPathObservations.get(target)?.get(observedPath);
+      if (observation) {
+        await assertPlannedObservation({
+          target,
+          observation,
+          operations,
+          createdDirectories,
+        });
+      }
       if (!current.isDirectory() || current.isSymbolicLink()) {
         throw new Error(`Update path has an unsafe directory: ${repositoryPath}`);
       }
       continue;
     }
 
+    let createdByTransaction = false;
     try {
       await operations.mkdir(directoryPath);
+      createdByTransaction = true;
     } catch (error) {
-      if (error?.code !== 'EEXIST') {
-        throw error;
+      if (error?.code === 'EEXIST') {
+        throw new Error(`An update directory appeared concurrently: ${repositoryPath}`);
       }
+      throw error;
     }
     const createdStat = await optionalOperationLstat(directoryPath, operations);
     if (!createdStat?.isDirectory() || createdStat.isSymbolicLink()) {
       throw new Error(`Update directory changed while it was being created: ${repositoryPath}`);
     }
-    createdDirectories.push({
-      path: directoryPath,
-      identity: identityOf(createdStat),
-    });
+    if (createdByTransaction) {
+      createdDirectories.push({
+        path: directoryPath,
+        identity: identityOf(createdStat),
+      });
+    }
   }
 }
 
@@ -356,7 +508,15 @@ async function installPreparedFile({
   operations,
   installed,
   createdDirectories,
+  plannedFileWasBackedUp = false,
 }) {
+  await assertPlannedPath({
+    target,
+    repositoryPath,
+    operations,
+    createdDirectories,
+    allowBackedUpFile: plannedFileWasBackedUp,
+  });
   await createTargetDirectories({
     target,
     repositoryPath,
@@ -364,13 +524,37 @@ async function installPreparedFile({
     createdDirectories,
   });
   await assertTransactionRoot(target, operations);
+  await assertPlannedPath({
+    target,
+    repositoryPath,
+    operations,
+    createdDirectories,
+    allowBackedUpFile: plannedFileWasBackedUp,
+  });
   const targetPath = path.join(target.targetPath, ...repositoryPath.split('/'));
   if (await optionalOperationLstat(targetPath, operations)) {
     throw new Error(`Update path appeared before it could be installed: ${repositoryPath}`);
   }
 
   const preparedStat = await operations.lstat(preparedPath);
-  await operations.link(preparedPath, targetPath);
+  const installedEntry = {
+    path: repositoryPath,
+    targetPath,
+    identity: identityOf(preparedStat),
+    fingerprint: expected,
+  };
+  try {
+    await operations.link(preparedPath, targetPath);
+  } catch (error) {
+    if (error?.code !== 'EEXIST') {
+      const current = await optionalOperationLstat(targetPath, operations).catch(() => null);
+      if (current && hasIdentity(current, installedEntry.identity)) {
+        installed.push(installedEntry);
+      }
+    }
+    throw error;
+  }
+  installed.push(installedEntry);
   const installedStat = await operations.lstat(targetPath);
   if (!hasIdentity(installedStat, identityOf(preparedStat))) {
     throw new Error(`Update path changed while it was being installed: ${repositoryPath}`);
@@ -379,12 +563,6 @@ async function installPreparedFile({
   if (!fingerprintsEqual(installedFingerprint, expected)) {
     throw new Error(`Installed update path has unexpected contents: ${repositoryPath}`);
   }
-  installed.push({
-    path: repositoryPath,
-    targetPath,
-    identity: identityOf(installedStat),
-    fingerprint: expected,
-  });
 }
 
 async function backupTargetFile({
@@ -396,6 +574,12 @@ async function backupTargetFile({
   backups,
 }) {
   await assertTransactionRoot(target, operations);
+  await assertPlannedPath({
+    target,
+    repositoryPath,
+    operations,
+    createdDirectories: [],
+  });
   const inspected = await inspectTransactionPath(target.targetPath, repositoryPath, operations);
   if (!inspected?.entryStat.isFile() || inspected.entryStat.isSymbolicLink()) {
     throw new Error(`Update path is no longer a regular file: ${repositoryPath}`);
@@ -411,18 +595,44 @@ async function backupTargetFile({
   }
 
   await operations.checkpoint('before-backup', { path: repositoryPath });
+  await assertPlannedPath({
+    target,
+    repositoryPath,
+    operations,
+    createdDirectories: [],
+  });
   const backupPath = path.join(backupRoot, ...repositoryPath.split('/'));
   await ensureDirectory(path.dirname(backupPath), operations);
-  await operations.rename(inspected.entryPath, backupPath);
-  const backupStat = await operations.lstat(backupPath);
-  const backupFingerprint = await fileFingerprint(backupPath);
-  backups.push({
+  let backupEntry;
+  try {
+    await operations.rename(inspected.entryPath, backupPath);
+  } catch (error) {
+    const movedStat = await optionalOperationLstat(backupPath, operations).catch(() => null);
+    if (movedStat?.isFile()) {
+      const movedFingerprint = await fileFingerprint(backupPath).catch(() => expected);
+      backupEntry = {
+        path: repositoryPath,
+        targetPath: inspected.entryPath,
+        backupPath,
+        identity: identityOf(movedStat),
+        fingerprint: movedFingerprint,
+      };
+      backups.push(backupEntry);
+    }
+    throw error;
+  }
+  backupEntry = {
     path: repositoryPath,
     targetPath: inspected.entryPath,
     backupPath,
-    identity: identityOf(backupStat),
-    fingerprint: backupFingerprint,
-  });
+    identity: initialIdentity,
+    fingerprint: expected,
+  };
+  backups.push(backupEntry);
+  const backupStat = await operations.lstat(backupPath);
+  const backupFingerprint = await fileFingerprint(backupPath);
+  backupEntry.identity = identityOf(backupStat);
+  backupEntry.fingerprint = backupFingerprint;
   if (
     !hasIdentity(backupStat, initialIdentity) ||
     !fingerprintsEqual(backupFingerprint, expected)
@@ -439,6 +649,7 @@ async function installPlanPaths({
   operations,
   installed,
   createdDirectories,
+  plannedFileWasBackedUp = false,
 }) {
   for (const repositoryPath of paths) {
     await installPreparedFile({
@@ -449,6 +660,7 @@ async function installPlanPaths({
       operations,
       installed,
       createdDirectories,
+      plannedFileWasBackedUp,
     });
   }
 }
@@ -601,6 +813,7 @@ export async function commitTemplateUpdate({
   const backups = [];
   const createdDirectories = [];
   let committed = false;
+  let rollbackComplete = false;
 
   try {
     for (const repositoryPath of [...plan.add, ...plan.replace]) {
@@ -630,9 +843,20 @@ export async function commitTemplateUpdate({
     });
     const lockFingerprint = await fileFingerprint(preparedLockPath);
 
+    const preservedUpstreamDeletes = plan.preserve
+      .filter(
+        (repositoryPath) =>
+          target.baseline?.files[repositoryPath] && !validatedIncoming.files[repositoryPath],
+      )
+      .map((repositoryPath) =>
+        Object.freeze({
+          path: repositoryPath,
+          reason: 'incoming-deleted-local-changed',
+        }),
+      );
     let preparedReportPath = null;
     let reportFingerprint = null;
-    if (plan.conflicts.length > 0) {
+    if (plan.conflicts.length > 0 || preservedUpstreamDeletes.length > 0) {
       preparedReportPath = path.join(transactionPath, 'report.json');
       const report = {
         schemaVersion: 1,
@@ -640,6 +864,7 @@ export async function commitTemplateUpdate({
         projectName: validatedIncoming.projectName,
         templateDigest: validatedIncoming.templateDigest,
         conflicts: plan.conflicts,
+        preserved: preservedUpstreamDeletes,
       };
       await operations.writeFile(preparedReportPath, `${JSON.stringify(report, null, 2)}\n`, {
         encoding: 'utf8',
@@ -679,6 +904,7 @@ export async function commitTemplateUpdate({
         operations,
         installed,
         createdDirectories,
+        plannedFileWasBackedUp: true,
       });
     }
     await operations.checkpoint('after-replace', {});
@@ -727,10 +953,17 @@ export async function commitTemplateUpdate({
       if (!currentLock) {
         throw new Error('The template lock disappeared before the update could finish.');
       }
+      const currentLockFingerprint = await fileFingerprint(currentLock.entryPath);
+      if (
+        !hasIdentity(currentLock.entryStat, target.lockIdentity) ||
+        !fingerprintsEqual(currentLockFingerprint, target.lockFingerprint)
+      ) {
+        throw new Error('The template lock changed before the update could finish.');
+      }
       const parsedCurrentLock = parseTemplateState(
         await readRegularFile(target.targetPath, LOCK_FILE_NAME),
       );
-      if (parsedCurrentLock.templateDigest !== target.baseline.templateDigest) {
+      if (serializeTemplateState(parsedCurrentLock) !== serializeTemplateState(target.baseline)) {
         throw new Error('The template lock changed before the update could finish.');
       }
       await backupTargetFile({
@@ -764,6 +997,7 @@ export async function commitTemplateUpdate({
       deleted: plan.delete.length,
       preserved: plan.preserve.length + plan.adopted.length,
       conflicts: plan.conflicts.length,
+      report: preparedReportPath !== null,
     });
   } catch (error) {
     const rollbackIssues = await rollbackTransaction({
@@ -780,15 +1014,11 @@ export async function commitTemplateUpdate({
         `The update failed and rollback needs attention. Recovery data remains at ${transactionPath}.`,
       );
     }
+    rollbackComplete = true;
     throw error;
   } finally {
-    if (committed) {
+    if (committed || rollbackComplete) {
       await operations.rm(transactionPath, { recursive: true, force: true });
-    } else {
-      const backupEntries = await readdir(backupRoot).catch(() => ['unknown']);
-      if (backupEntries.length === 0) {
-        await operations.rm(transactionPath, { recursive: true, force: true });
-      }
     }
   }
 }

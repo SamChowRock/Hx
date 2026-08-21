@@ -51,6 +51,13 @@ function updateSuccessMessage(targetPath, summary) {
       'Review incoming files in .hx-update/incoming and .hx-update/report.json.',
       'Merge the changes you want, then remove .hx-update.',
     );
+  } else if (summary.report) {
+    message.push(
+      '',
+      'Review preservation notes in .hx-update/report.json.',
+      'These local files were removed from Hx and remain untouched.',
+      'Remove .hx-update after reviewing the report.',
+    );
   }
   return `${message.join('\n')}\n`;
 }

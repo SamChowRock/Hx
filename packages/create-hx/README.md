@@ -53,7 +53,8 @@ the required Hx scaffold files.
 When conflicts exist, `.hx-update/report.json` describes them and the command exits with code `2`.
 Merge the incoming versions you want into your project, then remove `.hx-update/` before running
 another update. An update without conflicts exits with code `0`; operational errors exit with code
-`1`.
+`1`. If Hx removed a file that you modified locally, the file is preserved and recorded in the
+report without an incoming copy; review the note and remove `.hx-update/` afterward.
 
 Updating only synchronizes scaffold files. Dependency installation, migrations, application tests,
 and release validation remain manual.
@@ -110,6 +111,7 @@ pnpm create hx --update ./my-app
 
 存在冲突时，`.hx-update/report.json` 会记录冲突详情，命令退出码为 `2`。请把需要的
 incoming 内容合并回项目，然后删除 `.hx-update/`，之后才能再次更新。无冲突时退出码为 `0`，
-普通运行错误退出码为 `1`。
+普通运行错误退出码为 `1`。如果 Hx 删除了某文件、但该文件已被用户修改，文件会继续保留，并
+在报告中记录说明；这种情况没有 incoming 副本，查看说明后删除 `.hx-update/` 即可。
 
 更新命令只同步脚手架文件。依赖安装、数据库迁移、应用测试和发布验证仍需手工执行。

@@ -199,6 +199,7 @@ test('updates a generated project from a second local HTTPS archive', async (t) 
     deleted: 1,
     preserved: 0,
     conflicts: 1,
+    report: true,
   });
   assert.equal(
     await readFile(path.join(targetPath, 'apps/api/src/main.ts'), 'utf8'),
@@ -520,6 +521,32 @@ test('dispatches update mode and reports conflicts with exit code 2', async (t) 
   assert.equal(received.signal instanceof AbortSignal, true);
   assert.match(stdout.read(), /Updated: 1\nAdded: 2\nDeleted: 3\nPreserved: 4\nConflicts: 1/);
   assert.match(stdout.read(), /\.hx-update\/incoming/);
+});
+
+test('reports preserved upstream deletions without treating them as conflicts', async (t) => {
+  const root = await temporaryRoot(t);
+  const targetPath = path.join(root, 'workspace');
+  await mkdir(targetPath);
+  const stdout = captureStream();
+
+  const code = await runCli(['--update'], {
+    cwd: targetPath,
+    stdout: stdout.stream,
+    stderr: captureStream().stream,
+    env: {},
+    updateProjectImpl: async () => ({
+      updated: 0,
+      added: 0,
+      deleted: 0,
+      preserved: 1,
+      conflicts: 0,
+      report: true,
+    }),
+  });
+
+  assert.equal(code, 0);
+  assert.match(stdout.read(), /Review preservation notes in \.hx-update\/report\.json/);
+  assert.doesNotMatch(stdout.read(), /\.hx-update\/incoming/);
 });
 
 test('hides stacks by default and emits them only in debug mode', async (t) => {

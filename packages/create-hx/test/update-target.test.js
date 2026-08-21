@@ -3,10 +3,13 @@ import { createHash } from 'node:crypto';
 import {
   access,
   chmod,
+  copyFile,
+  link,
   mkdir,
   mkdtemp,
   readFile,
   readdir,
+  rename,
   rm,
   stat,
   symlink,
@@ -22,6 +25,7 @@ import {
 } from '../src/update-target.js';
 import {
   LOCK_FILE_NAME,
+  parseTemplateState,
   scanTemplateState,
   serializeTemplateState,
 } from '../src/template-state.js';
@@ -312,6 +316,7 @@ test('transaction applies safe changes, writes conflicts, prunes directories, an
     deleted: 1,
     preserved: 1,
     conflicts: 1,
+    report: true,
   });
   assert.equal(
     await readFile(path.join(fixture.targetPath, 'replace.txt'), 'utf8'),
@@ -475,4 +480,330 @@ test('transaction aborts between operation classes and rolls back', async (t) =>
     { name: 'AbortError' },
   );
   await assertOriginalTransactionProject(fixture);
+});
+
+test('transaction removes its sibling workspace after a complete rollback', async (t) => {
+  const fixture = await createTransactionFixture(t);
+  let transactionPath;
+
+  await assert.rejects(() =>
+    commitTemplateUpdate({
+      target: fixture.target,
+      templatePath: fixture.templatePath,
+      incomingState: fixture.incoming,
+      plan: fixture.plan,
+      operations: {
+        async mkdtemp(prefix) {
+          transactionPath = await mkdtemp(prefix);
+          return transactionPath;
+        },
+        checkpoint(name) {
+          if (name === 'after-replace') {
+            throw new Error('rollback cleanup');
+          }
+        },
+      },
+    }),
+  );
+
+  await assert.rejects(() => access(transactionPath), { code: 'ENOENT' });
+});
+
+test('transaction rollback preserves a concurrently created parent directory', async (t) => {
+  const fixture = await createTransactionFixture(t);
+  const concurrentDirectory = path.join(fixture.targetPath, 'added');
+  let raced = false;
+
+  await assert.rejects(() =>
+    commitTemplateUpdate({
+      target: fixture.target,
+      templatePath: fixture.templatePath,
+      incomingState: fixture.incoming,
+      plan: fixture.plan,
+      operations: {
+        async mkdir(directoryPath, options) {
+          if (directoryPath === concurrentDirectory && !raced) {
+            raced = true;
+            await mkdir(directoryPath);
+            const error = new Error('created concurrently');
+            error.code = 'EEXIST';
+            throw error;
+          }
+          return mkdir(directoryPath, options);
+        },
+        checkpoint(name) {
+          if (name === 'after-add') {
+            throw new Error('rollback concurrent directory');
+          }
+        },
+      },
+    }),
+  );
+
+  assert.equal(raced, true);
+  assert.deepEqual(await readdir(concurrentDirectory), []);
+});
+
+test('transaction rejects any concurrent lock change even when its file digest is unchanged', async (t) => {
+  const fixture = await createTransactionFixture(t);
+  const changedLock = { ...fixture.baseline, projectName: 'other-app' };
+  let changed = false;
+
+  await assert.rejects(
+    () =>
+      commitTemplateUpdate({
+        target: fixture.target,
+        templatePath: fixture.templatePath,
+        incomingState: fixture.incoming,
+        plan: fixture.plan,
+        operations: {
+          async checkpoint(name) {
+            if (name === 'after-conflicts' && !changed) {
+              changed = true;
+              await writeFile(
+                path.join(fixture.targetPath, LOCK_FILE_NAME),
+                serializeTemplateState(changedLock),
+              );
+            }
+          },
+        },
+      }),
+    /lock changed/,
+  );
+
+  assert.equal(changed, true);
+  assert.equal(
+    parseTemplateState(await readFile(path.join(fixture.targetPath, LOCK_FILE_NAME), 'utf8'))
+      .projectName,
+    'other-app',
+  );
+  assert.equal(
+    await readFile(path.join(fixture.targetPath, 'replace.txt'), 'utf8'),
+    'replace base\n',
+  );
+  await assert.rejects(() => access(path.join(fixture.targetPath, 'added/deep/new.txt')), {
+    code: 'ENOENT',
+  });
+});
+
+test('transaction rejects a byte-identical lock inode replacement after planning', async (t) => {
+  const fixture = await createTransactionFixture(t);
+  const lockPath = path.join(fixture.targetPath, LOCK_FILE_NAME);
+  const lockText = await readFile(lockPath, 'utf8');
+  await rename(lockPath, path.join(fixture.targetPath, 'original-template-lock.json'));
+  await writeFile(lockPath, lockText);
+
+  await assert.rejects(
+    () =>
+      commitTemplateUpdate({
+        target: fixture.target,
+        templatePath: fixture.templatePath,
+        incomingState: fixture.incoming,
+        plan: fixture.plan,
+      }),
+    /lock changed/,
+  );
+
+  assert.equal(await readFile(lockPath, 'utf8'), lockText);
+  await assert.rejects(() => access(path.join(fixture.targetPath, 'added/deep/new.txt')), {
+    code: 'ENOENT',
+  });
+});
+
+test('transaction journals an installed file before post-link verification can fail', async (t) => {
+  const fixture = await createTransactionFixture(t);
+  const addedPath = path.join(fixture.targetPath, 'added/deep/new.txt');
+  let failedAfterLink = false;
+
+  await assert.rejects(
+    () =>
+      commitTemplateUpdate({
+        target: fixture.target,
+        templatePath: fixture.templatePath,
+        incomingState: fixture.incoming,
+        plan: fixture.plan,
+        operations: {
+          async link(sourcePath, targetPath) {
+            await link(sourcePath, targetPath);
+            if (targetPath === addedPath && !failedAfterLink) {
+              failedAfterLink = true;
+              throw new Error('post-link verification failure');
+            }
+          },
+        },
+      }),
+    /post-link verification failure/,
+  );
+
+  assert.equal(failedAfterLink, true);
+  await assertOriginalTransactionProject(fixture);
+});
+
+test('transaction journals a backup before post-rename verification can fail', async (t) => {
+  const fixture = await createTransactionFixture(t);
+  const replacedPath = path.join(fixture.targetPath, 'replace.txt');
+  let failedAfterRename = false;
+
+  await assert.rejects(
+    () =>
+      commitTemplateUpdate({
+        target: fixture.target,
+        templatePath: fixture.templatePath,
+        incomingState: fixture.incoming,
+        plan: fixture.plan,
+        operations: {
+          async rename(sourcePath, targetPath) {
+            await rename(sourcePath, targetPath);
+            if (sourcePath === replacedPath && !failedAfterRename) {
+              failedAfterRename = true;
+              throw new Error('post-rename verification failure');
+            }
+          },
+        },
+      }),
+    /post-rename verification failure/,
+  );
+
+  assert.equal(failedAfterRename, true);
+  await assertOriginalTransactionProject(fixture);
+});
+
+test('transaction rejects same-content replacements of planned files and ancestors', async (t) => {
+  await t.test('ancestor directory identity', async (subtest) => {
+    const fixture = await createTransactionFixture(subtest);
+    const binPath = path.join(fixture.targetPath, 'bin');
+    const originalBinPath = path.join(fixture.targetPath, 'original-bin');
+    await rename(binPath, originalBinPath);
+    await mkdir(binPath);
+    await copyFile(path.join(originalBinPath, 'tool.sh'), path.join(binPath, 'tool.sh'));
+    await chmod(path.join(binPath, 'tool.sh'), 0o644);
+
+    await assert.rejects(
+      () =>
+        commitTemplateUpdate({
+          target: fixture.target,
+          templatePath: fixture.templatePath,
+          incomingState: fixture.incoming,
+          plan: fixture.plan,
+        }),
+      /changed.*plan|planned.*changed/i,
+    );
+
+    assert.equal(await readFile(path.join(binPath, 'tool.sh'), 'utf8'), '#!/bin/sh\n');
+    await assert.rejects(() => access(path.join(fixture.targetPath, 'added/deep/new.txt')), {
+      code: 'ENOENT',
+    });
+  });
+
+  await t.test('file identity', async (subtest) => {
+    const fixture = await createTransactionFixture(subtest);
+    const replacePath = path.join(fixture.targetPath, 'replace.txt');
+    const originalPath = path.join(fixture.targetPath, 'original-replace.txt');
+    await rename(replacePath, originalPath);
+    await writeFile(replacePath, 'replace base\n');
+
+    await assert.rejects(
+      () =>
+        commitTemplateUpdate({
+          target: fixture.target,
+          templatePath: fixture.templatePath,
+          incomingState: fixture.incoming,
+          plan: fixture.plan,
+        }),
+      /changed.*plan|planned.*changed/i,
+    );
+
+    assert.equal(await readFile(replacePath, 'utf8'), 'replace base\n');
+    await assert.rejects(() => access(path.join(fixture.targetPath, 'added/deep/new.txt')), {
+      code: 'ENOENT',
+    });
+  });
+});
+
+test('transaction rejects an ancestor symlink swap before rename without touching its target', async (t) => {
+  const fixture = await createTransactionFixture(t);
+  const outside = await temporaryRoot(t);
+  await writeRepositoryFile(outside, 'tool.sh', '#!/bin/sh\noutside\n');
+  let swapped = false;
+
+  await assert.rejects(
+    () =>
+      commitTemplateUpdate({
+        target: fixture.target,
+        templatePath: fixture.templatePath,
+        incomingState: fixture.incoming,
+        plan: fixture.plan,
+        operations: {
+          async checkpoint(name, context) {
+            if (name === 'before-backup' && context.path === 'bin/tool.sh' && !swapped) {
+              swapped = true;
+              await rename(
+                path.join(fixture.targetPath, 'bin'),
+                path.join(fixture.targetPath, 'original-bin'),
+              );
+              await symlink(outside, path.join(fixture.targetPath, 'bin'));
+            }
+          },
+        },
+      }),
+    /changed.*plan|planned.*changed/i,
+  );
+
+  assert.equal(swapped, true);
+  assert.equal(await readFile(path.join(outside, 'tool.sh'), 'utf8'), '#!/bin/sh\noutside\n');
+  assert.equal(
+    await readFile(path.join(fixture.targetPath, 'original-bin/tool.sh'), 'utf8'),
+    '#!/bin/sh\n',
+  );
+  await assert.rejects(() => access(path.join(fixture.targetPath, 'added/deep/new.txt')), {
+    code: 'ENOENT',
+  });
+});
+
+test('transaction reports a locally modified file removed from the incoming template', async (t) => {
+  const targetPath = await temporaryRoot(t);
+  const templatePath = await temporaryRoot(t);
+  await writeRepositoryFile(targetPath, 'package.json', '{"name":"my-app"}\n');
+  await writeRepositoryFile(targetPath, 'orphan.txt', 'template base\n');
+  const baseline = await scanTemplateState(targetPath, { projectName: 'my-app' });
+  await writeFile(path.join(targetPath, LOCK_FILE_NAME), serializeTemplateState(baseline));
+  await writeFile(path.join(targetPath, 'orphan.txt'), 'local orphan\n');
+
+  await writeRepositoryFile(templatePath, 'package.json', '{"name":"my-app"}\n');
+  const incoming = await scanTemplateState(templatePath, { projectName: 'my-app' });
+  await writeFile(path.join(templatePath, LOCK_FILE_NAME), serializeTemplateState(incoming));
+  const target = await inspectUpdateTarget(targetPath);
+  const localFiles = await collectControlledState(target, incoming);
+  const plan = planTemplateUpdate({
+    baselineFiles: baseline.files,
+    localFiles,
+    incomingFiles: incoming.files,
+  });
+
+  const summary = await commitTemplateUpdate({
+    target,
+    templatePath,
+    incomingState: incoming,
+    plan,
+  });
+
+  assert.deepEqual(summary, {
+    updated: 0,
+    added: 0,
+    deleted: 0,
+    preserved: 1,
+    conflicts: 0,
+    report: true,
+  });
+  assert.equal(await readFile(path.join(targetPath, 'orphan.txt'), 'utf8'), 'local orphan\n');
+  const report = JSON.parse(
+    await readFile(path.join(targetPath, '.hx-update/report.json'), 'utf8'),
+  );
+  assert.deepEqual(report.preserved, [
+    { path: 'orphan.txt', reason: 'incoming-deleted-local-changed' },
+  ]);
+  assert.deepEqual(report.conflicts, []);
+  await assert.rejects(() => access(path.join(targetPath, '.hx-update/incoming/orphan.txt')), {
+    code: 'ENOENT',
+  });
 });

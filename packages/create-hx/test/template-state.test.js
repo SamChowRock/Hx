@@ -91,6 +91,21 @@ test('produces the same digest independent of creation order', async () => {
   assert.deepEqual(states[0], states[1]);
 });
 
+test('tracks repository paths that match JavaScript object special keys', async () => {
+  await withTemporaryDirectory(async (rootPath) => {
+    await writeFile(path.join(rootPath, '__proto__'), 'prototype file\n');
+
+    const state = await scanTemplateState(rootPath, { projectName: 'my-app' });
+    const parsed = parseTemplateState(serializeTemplateState(state));
+
+    assert.equal(Object.hasOwn(state.files, '__proto__'), true);
+    assert.deepEqual(parsed.files['__proto__'], {
+      sha256: sha256('prototype file\n'),
+      executable: false,
+    });
+  });
+});
+
 test('fingerprints regular files and reports a missing file as null', async () => {
   await withTemporaryDirectory(async (rootPath) => {
     const filePath = path.join(rootPath, 'empty');
@@ -192,7 +207,34 @@ test('rejects malformed fingerprints, source, project names, and digests', () =>
     /Invalid project name/,
   );
   assert.throws(
+    () => parseTemplateState(JSON.stringify(makeState({ projectName: 123 }))),
+    /Invalid project name/,
+  );
+  assert.throws(
     () => parseTemplateState(JSON.stringify(makeState({ templateDigest: SHA256_EMPTY }))),
     /digest/,
   );
+});
+
+test('rejects duplicate JSON object keys and file paths', () => {
+  const files = { 'a.txt': { sha256: SHA256_EMPTY, executable: false } };
+  const state = makeState({ files });
+  const duplicatePathJson = `{
+    "schemaVersion": 1,
+    "source": {"repository": "SamChowRock/Hx", "ref": "main"},
+    "projectName": "my-app",
+    "templateDigest": "${state.templateDigest}",
+    "files": {
+      "a.txt": {"sha256": "${SHA256_EMPTY}", "executable": false},
+      "a.txt": {"sha256": "${SHA256_EMPTY}", "executable": false}
+    }
+  }`;
+  assert.throws(() => parseTemplateState(duplicatePathJson), /duplicate/i);
+
+  const serialized = serializeTemplateState(state);
+  const duplicateTopLevel = serialized.replace(
+    '"schemaVersion": 1,',
+    '"schemaVersion": 1,\n  "schemaVersion": 1,',
+  );
+  assert.throws(() => parseTemplateState(duplicateTopLevel), /duplicate/i);
 });
