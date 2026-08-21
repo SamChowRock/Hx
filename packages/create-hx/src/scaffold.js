@@ -7,6 +7,12 @@ import { isExcludedPath } from './manifest.js';
 import { commitStaging, inspectTarget } from './target.js';
 import { LOCK_FILE_NAME, scanTemplateState, serializeTemplateState } from './template-state.js';
 import { applyTemplateTransforms } from './transform.js';
+import { planTemplateUpdate } from './update-plan.js';
+import {
+  collectControlledState,
+  commitTemplateUpdate,
+  inspectUpdateTarget,
+} from './update-target.js';
 
 export const HX_MAIN_ARCHIVE_URL =
   'https://codeload.github.com/SamChowRock/Hx/tar.gz/refs/heads/main';
@@ -154,6 +160,51 @@ export async function createProject({
       targetPath: target.targetPath,
       targetExisted: target.targetExisted,
       targetIdentity: target.targetIdentity,
+      signal,
+    });
+  } finally {
+    await prepared?.cleanup();
+  }
+}
+
+export async function updateProject({
+  targetPath,
+  signal,
+  sourceUrl = HX_MAIN_ARCHIVE_URL,
+  downloadOptions = {},
+  temporaryDirectory = os.tmpdir(),
+  downloadImpl = downloadToFile,
+}) {
+  signal?.throwIfAborted();
+  const target = await inspectUpdateTarget(targetPath);
+  signal?.throwIfAborted();
+  let prepared;
+
+  try {
+    prepared = await prepareTemplate({
+      projectName: target.projectName,
+      signal,
+      sourceUrl,
+      downloadOptions,
+      temporaryDirectory,
+      downloadImpl,
+      stagingParentPath: path.dirname(target.targetPath),
+    });
+    signal?.throwIfAborted();
+    const localFiles = await collectControlledState(target, prepared.state);
+    signal?.throwIfAborted();
+    const plan = planTemplateUpdate({
+      baselineFiles: target.baseline?.files ?? {},
+      localFiles,
+      incomingFiles: prepared.state.files,
+      adopt: target.adoption,
+    });
+    signal?.throwIfAborted();
+    return await commitTemplateUpdate({
+      target,
+      templatePath: prepared.stagingPath,
+      incomingState: prepared.state,
+      plan,
       signal,
     });
   } finally {

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createReadStream } from 'node:fs';
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { access, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,7 +9,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { create as createTar } from 'tar';
-import { createProject } from '../src/scaffold.js';
+import { createProject, updateProject } from '../src/scaffold.js';
 import { LOCK_FILE_NAME, parseTemplateState } from '../src/template-state.js';
 
 const execFileAsync = promisify(execFile);
@@ -23,7 +23,7 @@ async function temporaryRoot(t) {
   return root;
 }
 
-async function createRepositoryArchive(t) {
+async function createRepositoryArchive(t, { overrides = {}, remove = [] } = {}) {
   const root = await temporaryRoot(t);
   const { stdout } = await execFileAsync(
     'git',
@@ -31,16 +31,30 @@ async function createRepositoryArchive(t) {
     { cwd: repositoryPath, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 },
   );
   const files = stdout.split('\0').filter(Boolean).sort();
+  const snapshotPath = path.join(root, 'snapshot');
+  for (const repositoryFile of files) {
+    const destination = path.join(snapshotPath, repositoryFile);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await copyFile(path.join(repositoryPath, repositoryFile), destination);
+  }
+  for (const [repositoryFile, contents] of Object.entries(overrides)) {
+    const destination = path.join(snapshotPath, repositoryFile);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, contents);
+  }
+  for (const repositoryFile of remove) {
+    await rm(path.join(snapshotPath, repositoryFile), { recursive: true, force: true });
+  }
   const archivePath = path.join(root, 'repository.tgz');
   await createTar(
     {
-      cwd: repositoryPath,
+      cwd: snapshotPath,
       file: archivePath,
       gzip: true,
       portable: true,
       prefix: 'Hx-main/',
     },
-    files,
+    ['.'],
   );
   return { archivePath, temporaryDirectory: root };
 }
@@ -143,4 +157,57 @@ test('the repository produces the authoritative scaffold and excludes source-onl
     false,
   );
   assert.match(await readFile(path.join(target, '.gitignore'), 'utf8'), /^\/\.hx-update\/$/m);
+});
+
+test('repository snapshots synchronize without exposing source-only content', async (t) => {
+  const versionOneFixture = await createRepositoryArchive(t);
+  const versionTwoFixture = await createRepositoryArchive(t, {
+    overrides: {
+      '.hx-template/README.md': '# {{PROJECT_NAME}}\n\nUpdated repository fixture.\n',
+      'apps/api/src/main.ts': 'export const repositoryFixtureVersion = 2;\n',
+    },
+  });
+  const versionOne = await serveArchive(t, versionOneFixture.archivePath);
+  const versionTwo = await serveArchive(t, versionTwoFixture.archivePath);
+  const target = path.join(versionOneFixture.temporaryDirectory, 'fixture-update-app');
+
+  await createProject({
+    targetPath: target,
+    projectName: 'fixture-update-app',
+    sourceUrl: versionOne.url,
+    downloadOptions: { ca: versionOne.ca },
+    temporaryDirectory: versionOneFixture.temporaryDirectory,
+  });
+  await writeFile(path.join(target, 'README.md'), '# local fixture README\n');
+
+  const summary = await updateProject({
+    targetPath: target,
+    sourceUrl: versionTwo.url,
+    downloadOptions: { ca: versionTwo.ca },
+    temporaryDirectory: versionOneFixture.temporaryDirectory,
+  });
+
+  assert.equal(summary.updated, 1);
+  assert.equal(summary.conflicts, 1);
+  assert.equal(
+    await readFile(path.join(target, 'apps/api/src/main.ts'), 'utf8'),
+    'export const repositoryFixtureVersion = 2;\n',
+  );
+  assert.equal(
+    await readFile(path.join(target, '.hx-update/incoming/README.md'), 'utf8'),
+    '# fixture-update-app\n\nUpdated repository fixture.\n',
+  );
+
+  for (const excluded of [
+    '.hx-template',
+    'docs',
+    'packages/create-hx',
+    'scripts/tutorial',
+    'tutorials',
+  ]) {
+    await assert.rejects(() => access(path.join(target, excluded)), { code: 'ENOENT' });
+    await assert.rejects(() => access(path.join(target, '.hx-update/incoming', excluded)), {
+      code: 'ENOENT',
+    });
+  }
 });

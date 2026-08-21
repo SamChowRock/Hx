@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { parseArguments } from './arguments.js';
-import { createProject } from './scaffold.js';
+import { createProject, updateProject } from './scaffold.js';
 
 const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
@@ -64,7 +64,7 @@ export async function runCli(
     env = process.env,
     processObject = process,
     createProjectImpl = createProject,
-    updateProjectImpl,
+    updateProjectImpl = updateProject,
   } = {},
 ) {
   const controller = new AbortController();
@@ -92,9 +92,6 @@ export async function runCli(
     }
 
     if (command.mode === 'update') {
-      if (!updateProjectImpl) {
-        throw new Error('The installed create-hx package does not support template updates.');
-      }
       const summary = await updateProjectImpl({
         targetPath: command.targetPath,
         signal: controller.signal,

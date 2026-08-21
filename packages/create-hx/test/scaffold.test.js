@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { EventEmitter } from 'node:events';
 import { create as createTar } from 'tar';
 import { runCli } from '../src/cli.js';
-import { createProject } from '../src/scaffold.js';
+import { createProject, updateProject } from '../src/scaffold.js';
 import { LOCK_FILE_NAME, parseTemplateState } from '../src/template-state.js';
 
 const testPath = path.dirname(fileURLToPath(import.meta.url));
@@ -41,7 +41,7 @@ async function temporaryRoot(t, prefix = 'create-hx-scaffold-') {
   return root;
 }
 
-async function createArchive(t, manifest = baseManifest) {
+async function createArchive(t, manifest = baseManifest, fileOverrides = {}) {
   const root = await temporaryRoot(t, 'create-hx-source-');
   const source = path.join(root, 'Hx-main');
   const files = {
@@ -62,9 +62,13 @@ async function createArchive(t, manifest = baseManifest) {
       scripts: { test: 'node --test', 'tutorial:check': 'node check.mjs' },
     })}\n`,
     'README.md': 'source readme\n',
+    ...fileOverrides,
   };
 
   for (const [repositoryPath, content] of Object.entries(files)) {
+    if (content === null) {
+      continue;
+    }
     const filePath = path.join(source, repositoryPath);
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, content);
@@ -156,6 +160,157 @@ test('creates and transforms a project from a local HTTPS archive', async (t) =>
     Object.keys(state.files).some((name) => name.startsWith('.hx-update/')),
     false,
   );
+});
+
+test('updates a generated project from a second local HTTPS archive', async (t) => {
+  const root = await temporaryRoot(t);
+  const versionOneArchive = await createArchive(t, baseManifest, {
+    'legacy.txt': 'legacy v1\n',
+  });
+  const versionTwoArchive = await createArchive(t, baseManifest, {
+    '.hx-template/README.md': '# {{PROJECT_NAME}}\n\nGenerated from Hx version two.\n',
+    'apps/api/src/main.ts': 'bootstrapVersionTwo();\n',
+    'new.txt': 'new in v2\n',
+  });
+  const versionOne = await serveArchive(t, versionOneArchive);
+  const versionTwo = await serveArchive(t, versionTwoArchive);
+  const targetPath = path.join(root, 'my-app');
+
+  await createProject({
+    targetPath,
+    projectName: 'my-app',
+    sourceUrl: versionOne.url,
+    downloadOptions: { ca: versionOne.ca },
+    temporaryDirectory: root,
+  });
+  await writeFile(path.join(targetPath, 'README.md'), '# my locally edited app\n');
+  await writeFile(path.join(targetPath, 'user-notes.txt'), 'never touch this\n');
+
+  const summary = await updateProject({
+    targetPath,
+    sourceUrl: versionTwo.url,
+    downloadOptions: { ca: versionTwo.ca },
+    temporaryDirectory: root,
+  });
+
+  assert.deepEqual(summary, {
+    updated: 1,
+    added: 1,
+    deleted: 1,
+    preserved: 0,
+    conflicts: 1,
+  });
+  assert.equal(
+    await readFile(path.join(targetPath, 'apps/api/src/main.ts'), 'utf8'),
+    'bootstrapVersionTwo();\n',
+  );
+  assert.equal(await readFile(path.join(targetPath, 'new.txt'), 'utf8'), 'new in v2\n');
+  await assert.rejects(() => access(path.join(targetPath, 'legacy.txt')), { code: 'ENOENT' });
+  assert.equal(
+    await readFile(path.join(targetPath, 'README.md'), 'utf8'),
+    '# my locally edited app\n',
+  );
+  assert.equal(
+    await readFile(path.join(targetPath, 'user-notes.txt'), 'utf8'),
+    'never touch this\n',
+  );
+  assert.equal(
+    await readFile(path.join(targetPath, '.hx-update/incoming/README.md'), 'utf8'),
+    '# my-app\n\nGenerated from Hx version two.\n',
+  );
+  const state = parseTemplateState(await readFile(path.join(targetPath, LOCK_FILE_NAME), 'utf8'));
+  assert.equal(state.files['apps/api/src/main.ts'].sha256.length, 64);
+  assert.equal(Object.hasOwn(state.files, 'new.txt'), true);
+  assert.equal(Object.hasOwn(state.files, 'legacy.txt'), false);
+
+  let downloadedAgain = false;
+  await assert.rejects(
+    () =>
+      updateProject({
+        targetPath,
+        temporaryDirectory: root,
+        downloadImpl: async () => {
+          downloadedAgain = true;
+        },
+      }),
+    /\.hx-update/,
+  );
+  assert.equal(downloadedAgain, false);
+});
+
+test('adopts a lockless create-hx 0.1 project conservatively', async (t) => {
+  const root = await temporaryRoot(t);
+  const anchors = {
+    'apps/worker/src/main.ts': 'worker();\n',
+    'docker-compose.yml': 'services: {}\n',
+    'prisma/schema.prisma': 'generator client {}\n',
+  };
+  const versionOneArchive = await createArchive(t, baseManifest, anchors);
+  const versionTwoArchive = await createArchive(t, baseManifest, {
+    ...anchors,
+    '.hx-template/README.md': '# {{PROJECT_NAME}}\n\nVersion two.\n',
+    'new.txt': 'new in v2\n',
+  });
+  const versionOne = await serveArchive(t, versionOneArchive);
+  const versionTwo = await serveArchive(t, versionTwoArchive);
+  const targetPath = path.join(root, 'legacy-app');
+
+  await createProject({
+    targetPath,
+    projectName: 'legacy-app',
+    sourceUrl: versionOne.url,
+    downloadOptions: { ca: versionOne.ca },
+    temporaryDirectory: root,
+  });
+  await rm(path.join(targetPath, LOCK_FILE_NAME));
+  await writeFile(path.join(targetPath, 'README.md'), '# legacy local README\n');
+
+  const summary = await updateProject({
+    targetPath,
+    sourceUrl: versionTwo.url,
+    downloadOptions: { ca: versionTwo.ca },
+    temporaryDirectory: root,
+  });
+
+  assert.equal(summary.updated, 0);
+  assert.equal(summary.deleted, 0);
+  assert.equal(summary.added, 1);
+  assert.equal(summary.conflicts, 1);
+  assert.equal(summary.preserved > 0, true);
+  assert.equal(
+    await readFile(path.join(targetPath, 'README.md'), 'utf8'),
+    '# legacy local README\n',
+  );
+  assert.equal(
+    await readFile(path.join(targetPath, '.hx-update/incoming/README.md'), 'utf8'),
+    '# legacy-app\n\nVersion two.\n',
+  );
+  assert.equal(await readFile(path.join(targetPath, 'new.txt'), 'utf8'), 'new in v2\n');
+  assert.equal(
+    parseTemplateState(await readFile(path.join(targetPath, LOCK_FILE_NAME), 'utf8')).projectName,
+    'legacy-app',
+  );
+});
+
+test('rejects a non-Hx update target before invoking the downloader', async (t) => {
+  const root = await temporaryRoot(t);
+  const targetPath = path.join(root, 'unrelated');
+  await mkdir(targetPath);
+  await writeFile(path.join(targetPath, 'package.json'), '{"name":"unrelated"}\n');
+  let downloaded = false;
+
+  await assert.rejects(
+    () =>
+      updateProject({
+        targetPath,
+        temporaryDirectory: root,
+        downloadImpl: async () => {
+          downloaded = true;
+        },
+      }),
+    /create-hx 0\.1/,
+  );
+  assert.equal(downloaded, false);
 });
 
 test('verifies required output before writing the target and removes staging', async (t) => {
