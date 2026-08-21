@@ -1,10 +1,11 @@
-import { lstat, mkdtemp, readdir, rm } from 'node:fs/promises';
+import { lstat, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { extractTemplateArchive, inspectTemplateArchive } from './archive.js';
 import { downloadToFile } from './download.js';
 import { isExcludedPath } from './manifest.js';
 import { commitStaging, inspectTarget } from './target.js';
+import { LOCK_FILE_NAME, scanTemplateState, serializeTemplateState } from './template-state.js';
 import { applyTemplateTransforms } from './transform.js';
 
 export const HX_MAIN_ARCHIVE_URL =
@@ -52,22 +53,29 @@ async function verifyOutput(stagingPath, manifest) {
   await walk(stagingPath);
 }
 
-export async function createProject({
-  targetPath,
+export async function prepareTemplate({
   projectName,
   signal,
   sourceUrl = HX_MAIN_ARCHIVE_URL,
   downloadOptions = {},
   temporaryDirectory = os.tmpdir(),
   downloadImpl = downloadToFile,
+  stagingParentPath,
 }) {
   signal?.throwIfAborted();
-  const target = await inspectTarget(targetPath);
-  signal?.throwIfAborted();
-  const stagingPath = await mkdtemp(
-    path.join(path.dirname(target.targetPath), '.create-hx-stage-'),
-  );
+  const stagingPath = await mkdtemp(path.join(stagingParentPath, '.create-hx-stage-'));
   let downloadDirectory;
+  let cleanupPromise;
+
+  function cleanup() {
+    cleanupPromise ??= (async () => {
+      await rm(stagingPath, { recursive: true, force: true });
+      if (downloadDirectory) {
+        await rm(downloadDirectory, { recursive: true, force: true });
+      }
+    })();
+    return cleanupPromise;
+  }
 
   try {
     downloadDirectory = await mkdtemp(path.join(temporaryDirectory, 'create-hx-download-'));
@@ -97,17 +105,58 @@ export async function createProject({
     signal?.throwIfAborted();
     await verifyOutput(stagingPath, template.manifest);
     signal?.throwIfAborted();
-    await commitStaging({
+    const state = await scanTemplateState(stagingPath, { projectName });
+    signal?.throwIfAborted();
+    await writeFile(path.join(stagingPath, LOCK_FILE_NAME), serializeTemplateState(state), {
+      encoding: 'utf8',
+      mode: 0o644,
+      flag: 'wx',
+    });
+    signal?.throwIfAborted();
+    return {
       stagingPath,
+      manifest: template.manifest,
+      state,
+      cleanup,
+    };
+  } catch (error) {
+    await cleanup();
+    throw error;
+  }
+}
+
+export async function createProject({
+  targetPath,
+  projectName,
+  signal,
+  sourceUrl = HX_MAIN_ARCHIVE_URL,
+  downloadOptions = {},
+  temporaryDirectory = os.tmpdir(),
+  downloadImpl = downloadToFile,
+}) {
+  signal?.throwIfAborted();
+  const target = await inspectTarget(targetPath);
+  signal?.throwIfAborted();
+  let prepared;
+
+  try {
+    prepared = await prepareTemplate({
+      projectName,
+      signal,
+      sourceUrl,
+      downloadOptions,
+      temporaryDirectory,
+      downloadImpl,
+      stagingParentPath: path.dirname(target.targetPath),
+    });
+    await commitStaging({
+      stagingPath: prepared.stagingPath,
       targetPath: target.targetPath,
       targetExisted: target.targetExisted,
       targetIdentity: target.targetIdentity,
       signal,
     });
   } finally {
-    await rm(stagingPath, { recursive: true, force: true });
-    if (downloadDirectory) {
-      await rm(downloadDirectory, { recursive: true, force: true });
-    }
+    await prepared?.cleanup();
   }
 }

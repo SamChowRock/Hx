@@ -7,8 +7,10 @@ const require = createRequire(import.meta.url);
 const { version } = require('../package.json');
 
 const HELP = `Usage: create-hx [directory]
+       create-hx --update [directory]
 
 Create a new Hx project in a missing or completely empty directory.
+Synchronize an existing Hx project with the latest scaffold using --update.
 
 Arguments:
   directory      Target directory (default: current directory)
@@ -16,6 +18,7 @@ Arguments:
 Options:
   -h, --help     Show this help
   -v, --version  Show the installed create-hx version
+      --update   Safely synchronize an existing Hx project
 `;
 
 function shellQuote(value) {
@@ -32,6 +35,26 @@ function successMessage(cwd, targetPath) {
   return `Hx scaffold created at ${targetPath}.\n\n${commands.join('\n')}\n`;
 }
 
+function updateSuccessMessage(targetPath, summary) {
+  const message = [
+    `Hx scaffold updated at ${targetPath}.`,
+    '',
+    `Updated: ${summary.updated}`,
+    `Added: ${summary.added}`,
+    `Deleted: ${summary.deleted}`,
+    `Preserved: ${summary.preserved}`,
+    `Conflicts: ${summary.conflicts}`,
+  ];
+  if (summary.conflicts > 0) {
+    message.push(
+      '',
+      'Review incoming files in .hx-update/incoming and .hx-update/report.json.',
+      'Merge the changes you want, then remove .hx-update.',
+    );
+  }
+  return `${message.join('\n')}\n`;
+}
+
 export async function runCli(
   argv,
   {
@@ -41,6 +64,7 @@ export async function runCli(
     env = process.env,
     processObject = process,
     createProjectImpl = createProject,
+    updateProjectImpl,
   } = {},
 ) {
   const controller = new AbortController();
@@ -65,6 +89,21 @@ export async function runCli(
     if (command.mode === 'version') {
       stdout.write(`${command.version}\n`);
       return 0;
+    }
+
+    if (command.mode === 'update') {
+      if (!updateProjectImpl) {
+        throw new Error('The installed create-hx package does not support template updates.');
+      }
+      const summary = await updateProjectImpl({
+        targetPath: command.targetPath,
+        signal: controller.signal,
+      });
+      if (signalExitCode !== null) {
+        return signalExitCode;
+      }
+      stdout.write(updateSuccessMessage(command.targetPath, summary));
+      return summary.conflicts > 0 ? 2 : 0;
     }
 
     await createProjectImpl({

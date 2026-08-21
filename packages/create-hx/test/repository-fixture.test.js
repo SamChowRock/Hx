@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { create as createTar } from 'tar';
 import { createProject } from '../src/scaffold.js';
+import { LOCK_FILE_NAME, parseTemplateState } from '../src/template-state.js';
 
 const execFileAsync = promisify(execFile);
 const testPath = path.dirname(fileURLToPath(import.meta.url));
@@ -115,4 +116,31 @@ test('the repository produces the authoritative scaffold and excludes source-onl
   const readme = await readFile(path.join(target, 'README.md'), 'utf8');
   assert.match(readme, /^# fixture-app$/m);
   assert.doesNotMatch(readme, /tutorial|blueprint|\.hx-template/i);
+
+  const state = parseTemplateState(await readFile(path.join(target, LOCK_FILE_NAME), 'utf8'));
+  for (const required of [
+    '.gitignore',
+    'README.md',
+    'apps/api/src/main.ts',
+    'apps/worker/src/main.ts',
+    'docker-compose.yml',
+    'package.json',
+    'prisma/schema.prisma',
+  ]) {
+    assert.equal(Object.hasOwn(state.files, required), true, `${required} is tracked`);
+  }
+  assert.equal(Object.hasOwn(state.files, LOCK_FILE_NAME), false);
+  assert.equal(
+    Object.keys(state.files).some((name) => name.startsWith('.hx-template')),
+    false,
+  );
+  assert.equal(
+    Object.keys(state.files).some((name) => name.startsWith('.hx-update')),
+    false,
+  );
+  assert.equal(
+    Object.keys(state.files).some((name) => name.startsWith('packages/create-hx')),
+    false,
+  );
+  assert.match(await readFile(path.join(target, '.gitignore'), 'utf8'), /^\/\.hx-update\/$/m);
 });

@@ -24,6 +24,27 @@ test('resolves an explicit child directory', () => {
   });
 });
 
+test('resolves update mode for the current or one explicit directory', () => {
+  const cwd = path.join(path.parse(process.cwd()).root, 'work');
+
+  assert.deepEqual(parseArguments(['--update'], { cwd, version: '0.1.0' }), {
+    mode: 'update',
+    targetPath: cwd,
+  });
+  assert.deepEqual(parseArguments(['--update', 'api-service'], { cwd, version: '0.1.0' }), {
+    mode: 'update',
+    targetPath: path.join(cwd, 'api-service'),
+  });
+});
+
+test('rejects malformed update invocations', () => {
+  const context = { cwd: process.cwd(), version: '0.1.0' };
+
+  assert.throws(() => parseArguments(['--update', '--update'], context), /only once/);
+  assert.throws(() => parseArguments(['--update', 'one', 'two'], context), /one directory/);
+  assert.throws(() => parseArguments(['--update', '--help'], context), /cannot be combined/);
+});
+
 test('returns help and version without deriving a target', () => {
   assert.deepEqual(parseArguments(['--help'], { cwd: process.cwd(), version: '0.1.0' }), {
     mode: 'help',

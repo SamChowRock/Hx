@@ -29,6 +29,25 @@ export function parseArguments(argv, { cwd, version }) {
     return { mode: 'version', version };
   }
 
+  const updateCount = argv.filter((argument) => argument === '--update').length;
+  if (updateCount > 1) {
+    throw new UsageError('The --update option may be used only once.');
+  }
+  if (updateCount === 1) {
+    const positional = argv.filter((argument) => argument !== '--update');
+    const incompatible = positional.find((argument) => argument.startsWith('-'));
+    if (incompatible) {
+      throw new UsageError(`The --update option cannot be combined with ${incompatible}.`);
+    }
+    if (positional.length > 1) {
+      throw new UsageError('Expected at most one directory argument with --update.');
+    }
+    return {
+      mode: 'update',
+      targetPath: path.resolve(cwd, positional[0] ?? '.'),
+    };
+  }
+
   const unknown = argv.find((argument) => argument.startsWith('-'));
   if (unknown) {
     throw new UsageError(`Unknown option: ${unknown}`);

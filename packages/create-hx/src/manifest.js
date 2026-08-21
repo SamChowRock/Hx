@@ -10,7 +10,12 @@ const TOP_LEVEL_FIELDS = new Set([
 ]);
 const PACKAGE_JSON_FIELDS = new Set(['removeScriptPrefixes']);
 const BLOCK_NAME = /^[a-z0-9-]+$/;
-export const MANDATORY_EXCLUDE_PREFIXES = Object.freeze(['.hx-template', 'packages/create-hx']);
+export const MANDATORY_EXCLUDE_PREFIXES = Object.freeze([
+  '.hx-template',
+  '.hx-template-lock.json',
+  '.hx-update',
+  'packages/create-hx',
+]);
 
 function isPlainObject(value) {
   return (

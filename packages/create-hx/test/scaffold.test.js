@@ -20,6 +20,7 @@ import { EventEmitter } from 'node:events';
 import { create as createTar } from 'tar';
 import { runCli } from '../src/cli.js';
 import { createProject } from '../src/scaffold.js';
+import { LOCK_FILE_NAME, parseTemplateState } from '../src/template-state.js';
 
 const testPath = path.dirname(fileURLToPath(import.meta.url));
 const fixturesPath = path.join(testPath, 'fixtures');
@@ -141,6 +142,20 @@ test('creates and transforms a project from a local HTTPS archive', async (t) =>
   );
   await assert.rejects(() => access(path.join(targetPath, 'docs')), { code: 'ENOENT' });
   await assert.rejects(() => access(path.join(targetPath, '.hx-template')), { code: 'ENOENT' });
+
+  const state = parseTemplateState(await readFile(path.join(targetPath, LOCK_FILE_NAME), 'utf8'));
+  assert.equal(state.projectName, 'my-app');
+  assert.deepEqual(Object.keys(state.files), [
+    '.github/workflows/ci.yml',
+    'README.md',
+    'apps/api/src/main.ts',
+    'package.json',
+  ]);
+  assert.equal(Object.hasOwn(state.files, LOCK_FILE_NAME), false);
+  assert.equal(
+    Object.keys(state.files).some((name) => name.startsWith('.hx-update/')),
+    false,
+  );
 });
 
 test('verifies required output before writing the target and removes staging', async (t) => {
@@ -324,6 +339,32 @@ test('prints only manual next steps, adding cd only for a child directory', asyn
       /git init\npnpm install\ncp \.env\.example \.env\ndocker compose up --build -d/,
     );
   }
+});
+
+test('dispatches update mode and reports conflicts with exit code 2', async (t) => {
+  const root = await temporaryRoot(t);
+  const targetPath = path.join(root, 'workspace');
+  await mkdir(targetPath);
+  const stdout = captureStream();
+  let received;
+
+  const code = await runCli(['--update'], {
+    cwd: targetPath,
+    stdout: stdout.stream,
+    stderr: captureStream().stream,
+    env: {},
+    createProjectImpl: async () => assert.fail('create mode must not run'),
+    updateProjectImpl: async (options) => {
+      received = options;
+      return { updated: 1, added: 2, deleted: 3, preserved: 4, conflicts: 1 };
+    },
+  });
+
+  assert.equal(code, 2);
+  assert.equal(received.targetPath, targetPath);
+  assert.equal(received.signal instanceof AbortSignal, true);
+  assert.match(stdout.read(), /Updated: 1\nAdded: 2\nDeleted: 3\nPreserved: 4\nConflicts: 1/);
+  assert.match(stdout.read(), /\.hx-update\/incoming/);
 });
 
 test('hides stacks by default and emits them only in debug mode', async (t) => {
