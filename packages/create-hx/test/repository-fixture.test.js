@@ -1,0 +1,118 @@
+import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import { createReadStream } from 'node:fs';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import https from 'node:https';
+import os from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import { create as createTar } from 'tar';
+import { createProject } from '../src/scaffold.js';
+
+const execFileAsync = promisify(execFile);
+const testPath = path.dirname(fileURLToPath(import.meta.url));
+const fixturesPath = path.join(testPath, 'fixtures');
+const repositoryPath = path.resolve(testPath, '../../..');
+
+async function temporaryRoot(t) {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'create-hx-repository-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  return root;
+}
+
+async function createRepositoryArchive(t) {
+  const root = await temporaryRoot(t);
+  const { stdout } = await execFileAsync(
+    'git',
+    ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+    { cwd: repositoryPath, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 },
+  );
+  const files = stdout.split('\0').filter(Boolean).sort();
+  const archivePath = path.join(root, 'repository.tgz');
+  await createTar(
+    {
+      cwd: repositoryPath,
+      file: archivePath,
+      gzip: true,
+      portable: true,
+      prefix: 'Hx-main/',
+    },
+    files,
+  );
+  return { archivePath, temporaryDirectory: root };
+}
+
+async function serveArchive(t, archivePath) {
+  const [key, cert] = await Promise.all([
+    readFile(path.join(fixturesPath, 'localhost-key.pem')),
+    readFile(path.join(fixturesPath, 'localhost-cert.pem')),
+  ]);
+  const server = https.createServer({ key, cert }, (_request, response) => {
+    createReadStream(archivePath).pipe(response);
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, 'localhost', resolve);
+  });
+  t.after(async () => {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  });
+  return { url: `https://localhost:${server.address().port}/archive`, ca: cert };
+}
+
+test('the repository produces the authoritative scaffold and excludes source-only content', async (t) => {
+  const fixture = await createRepositoryArchive(t);
+  const server = await serveArchive(t, fixture.archivePath);
+  const target = path.join(fixture.temporaryDirectory, 'fixture-app');
+
+  await createProject({
+    targetPath: target,
+    projectName: 'fixture-app',
+    sourceUrl: server.url,
+    downloadOptions: { ca: server.ca },
+    temporaryDirectory: fixture.temporaryDirectory,
+  });
+
+  const generatedPackage = JSON.parse(await readFile(path.join(target, 'package.json'), 'utf8'));
+  assert.equal(generatedPackage.name, 'fixture-app');
+  assert.deepEqual(
+    Object.keys(generatedPackage.scripts).filter((name) => name.startsWith('tutorial:')),
+    [],
+  );
+
+  for (const excluded of [
+    '.hx-template',
+    'BACKEND_SCAFFOLD_BLUEPRINT.md',
+    'docs',
+    'packages/create-hx',
+    'scripts/tutorial',
+    'tutorials',
+    '.github/workflows/create-hx-ci.yml',
+    '.github/workflows/publish-create-hx.yml',
+  ]) {
+    await assert.rejects(() => access(path.join(target, excluded)), { code: 'ENOENT' });
+  }
+
+  for (const required of [
+    '.env.example',
+    'apps/api/src/main.ts',
+    'apps/worker/src/main.ts',
+    'docker-compose.yml',
+    'package.json',
+    'pnpm-lock.yaml',
+    'prisma/schema.prisma',
+  ]) {
+    await access(path.join(target, required));
+  }
+
+  const workflow = await readFile(path.join(target, '.github/workflows/ci.yml'), 'utf8');
+  assert.doesNotMatch(workflow, /tutorial:|hx-template:exclude/);
+  assert.match(workflow, /pnpm test/);
+
+  const readme = await readFile(path.join(target, 'README.md'), 'utf8');
+  assert.match(readme, /^# fixture-app$/m);
+  assert.doesNotMatch(readme, /tutorial|blueprint|\.hx-template/i);
+});

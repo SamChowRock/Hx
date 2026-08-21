@@ -24,11 +24,13 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # hx-template:exclude-start tutorial
       - run: pnpm tutorial:check
       - name: Check whether code changes received tutorial review
         env:
           TUTORIAL_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: pnpm tutorial:impact:check
+      # hx-template:exclude-end tutorial
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

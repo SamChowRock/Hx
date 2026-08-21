@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "exclude": [
+    ".hx-template",
+    ".github/workflows/create-hx-ci.yml",
+    ".github/workflows/publish-create-hx.yml",
+    "BACKEND_SCAFFOLD_BLUEPRINT.md",
+    "docs",
+    "packages/create-hx",
+    "scripts/tutorial",
+    "tutorials"
+  ],
+  "required": [
+    ".env.example",
+    "apps/api/src/main.ts",
+    "apps/worker/src/main.ts",
+    "docker-compose.yml",
+    "package.json",
+    "pnpm-lock.yaml",
+    "prisma/schema.prisma"
+  ],
+  "overrides": {
+    "README.md": ".hx-template/README.md"
+  },
+  "stripBlocks": {
+    ".github/workflows/ci.yml": ["tutorial"]
+  },
+  "packageJson": {
+    "removeScriptPrefixes": ["tutorial:"]
+  }
+}
