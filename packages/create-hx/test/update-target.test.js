@@ -5,6 +5,7 @@ import {
   chmod,
   copyFile,
   link,
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
@@ -804,6 +805,87 @@ test('transaction reports a locally modified file removed from the incoming temp
   ]);
   assert.deepEqual(report.conflicts, []);
   await assert.rejects(() => access(path.join(targetPath, '.hx-update/incoming/orphan.txt')), {
+    code: 'ENOENT',
+  });
+});
+
+test('transaction never trusts or restores a backup changed after rename', async (t) => {
+  const fixture = await createTransactionFixture(t);
+  let transactionPath;
+  let corrupted = false;
+
+  await assert.rejects(
+    () =>
+      commitTemplateUpdate({
+        target: fixture.target,
+        templatePath: fixture.templatePath,
+        incomingState: fixture.incoming,
+        plan: fixture.plan,
+        operations: {
+          async mkdtemp(prefix) {
+            transactionPath = await mkdtemp(prefix);
+            return transactionPath;
+          },
+          async lstat(entryPath) {
+            const entryStat = await lstat(entryPath, { bigint: false });
+            const expectedBackup = path.join(transactionPath ?? '', 'backup', 'bin/tool.sh');
+            if (entryPath === expectedBackup && !corrupted) {
+              corrupted = true;
+              await writeFile(entryPath, 'corrupt\n');
+            }
+            return entryStat;
+          },
+        },
+      }),
+    /rollback needs attention/,
+  );
+
+  assert.equal(corrupted, true);
+  await assert.rejects(() => access(path.join(fixture.targetPath, 'bin/tool.sh')), {
+    code: 'ENOENT',
+  });
+  assert.equal(
+    await readFile(path.join(transactionPath, 'backup/bin/tool.sh'), 'utf8'),
+    'corrupt\n',
+  );
+  t.after(() => rm(transactionPath, { recursive: true, force: true }));
+});
+
+test('transaction rejects a lock inode swap between final inspection and backup', async (t) => {
+  const fixture = await createTransactionFixture(t);
+  const lockPath = path.join(fixture.targetPath, LOCK_FILE_NAME);
+  const lockText = await readFile(lockPath, 'utf8');
+  let swapped = false;
+
+  await assert.rejects(
+    () =>
+      commitTemplateUpdate({
+        target: fixture.target,
+        templatePath: fixture.templatePath,
+        incomingState: fixture.incoming,
+        plan: fixture.plan,
+        operations: {
+          async lstat(entryPath) {
+            const entryStat = await lstat(entryPath, { bigint: false });
+            if (entryPath === lockPath && !swapped) {
+              swapped = true;
+              await rename(lockPath, path.join(fixture.targetPath, 'raced-template-lock.json'));
+              await writeFile(lockPath, lockText);
+            }
+            return entryStat;
+          },
+        },
+      }),
+    /lock changed|changed before backup/,
+  );
+
+  assert.equal(swapped, true);
+  assert.equal(await readFile(lockPath, 'utf8'), lockText);
+  assert.equal(
+    await readFile(path.join(fixture.targetPath, 'replace.txt'), 'utf8'),
+    'replace base\n',
+  );
+  await assert.rejects(() => access(path.join(fixture.targetPath, 'added/deep/new.txt')), {
     code: 'ENOENT',
   });
 });

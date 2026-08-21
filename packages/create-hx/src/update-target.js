@@ -569,6 +569,7 @@ async function backupTargetFile({
   target,
   repositoryPath,
   expected,
+  expectedIdentity = null,
   backupRoot,
   operations,
   backups,
@@ -585,6 +586,9 @@ async function backupTargetFile({
     throw new Error(`Update path is no longer a regular file: ${repositoryPath}`);
   }
   const initialIdentity = identityOf(inspected.entryStat);
+  if (expectedIdentity && !hasIdentity(inspected.entryStat, expectedIdentity)) {
+    throw new Error(`Update path changed before backup: ${repositoryPath}`);
+  }
   const initialFingerprint = await fileFingerprint(inspected.entryPath);
   const recheckedStat = await operations.lstat(inspected.entryPath);
   if (
@@ -601,6 +605,16 @@ async function backupTargetFile({
     operations,
     createdDirectories: [],
   });
+  const postCheckpointStat = await operations.lstat(inspected.entryPath);
+  const postCheckpointFingerprint = await fileFingerprint(inspected.entryPath);
+  const preRenameStat = await operations.lstat(inspected.entryPath);
+  if (
+    !hasIdentity(postCheckpointStat, initialIdentity) ||
+    !hasIdentity(preRenameStat, initialIdentity) ||
+    !fingerprintsEqual(postCheckpointFingerprint, expected)
+  ) {
+    throw new Error(`Update path changed before backup: ${repositoryPath}`);
+  }
   const backupPath = path.join(backupRoot, ...repositoryPath.split('/'));
   await ensureDirectory(path.dirname(backupPath), operations);
   let backupEntry;
@@ -609,13 +623,12 @@ async function backupTargetFile({
   } catch (error) {
     const movedStat = await optionalOperationLstat(backupPath, operations).catch(() => null);
     if (movedStat?.isFile()) {
-      const movedFingerprint = await fileFingerprint(backupPath).catch(() => expected);
       backupEntry = {
         path: repositoryPath,
         targetPath: inspected.entryPath,
         backupPath,
-        identity: identityOf(movedStat),
-        fingerprint: movedFingerprint,
+        identity: initialIdentity,
+        fingerprint: expected,
       };
       backups.push(backupEntry);
     }
@@ -631,8 +644,6 @@ async function backupTargetFile({
   backups.push(backupEntry);
   const backupStat = await operations.lstat(backupPath);
   const backupFingerprint = await fileFingerprint(backupPath);
-  backupEntry.identity = identityOf(backupStat);
-  backupEntry.fingerprint = backupFingerprint;
   if (
     !hasIdentity(backupStat, initialIdentity) ||
     !fingerprintsEqual(backupFingerprint, expected)
@@ -969,7 +980,8 @@ export async function commitTemplateUpdate({
       await backupTargetFile({
         target,
         repositoryPath: LOCK_FILE_NAME,
-        expected: await fileFingerprint(currentLock.entryPath),
+        expected: target.lockFingerprint,
+        expectedIdentity: target.lockIdentity,
         backupRoot,
         operations,
         backups,
