@@ -1,0 +1,39 @@
+name: Publish create-hx
+
+on:
+  push:
+    tags:
+      - create-hx-v*
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+          run_install: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.19.0
+          registry-url: https://registry.npmjs.org/
+          package-manager-cache: false
+      - name: Validate tag and npm version
+        run: |
+          PACKAGE_VERSION="$(node -p "require('./packages/create-hx/package.json').version")"
+          test "${GITHUB_REF_NAME}" = "create-hx-v${PACKAGE_VERSION}"
+          NPM_VERSION="$(npm --version)"
+          node -e "const [major, minor, patch] = process.argv[1].split('.').map(Number); if (major < 11 || (major === 11 && (minor < 5 || (minor === 5 && patch < 1)))) process.exit(1)" "$NPM_VERSION"
+      - run: pnpm install --ignore-workspace --frozen-lockfile
+        working-directory: packages/create-hx
+      - run: pnpm test
+        working-directory: packages/create-hx
+      - run: pnpm pack:check
+        working-directory: packages/create-hx
+      - run: npm publish
+        working-directory: packages/create-hx

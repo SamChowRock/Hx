@@ -10,6 +10,7 @@ const TOP_LEVEL_FIELDS = new Set([
 ]);
 const PACKAGE_JSON_FIELDS = new Set(['removeScriptPrefixes']);
 const BLOCK_NAME = /^[a-z0-9-]+$/;
+export const MANDATORY_EXCLUDE_PREFIXES = Object.freeze(['.hx-template', 'packages/create-hx']);
 
 function isPlainObject(value) {
   return (
@@ -114,7 +115,9 @@ export function matchesPathPrefix(repositoryPath, prefix) {
 }
 
 export function isExcludedPath(repositoryPath, manifest) {
-  return manifest.exclude.some((prefix) => matchesPathPrefix(repositoryPath, prefix));
+  return [...MANDATORY_EXCLUDE_PREFIXES, ...manifest.exclude].some((prefix) =>
+    matchesPathPrefix(repositoryPath, prefix),
+  );
 }
 
 export function validateManifest(value) {
@@ -134,7 +137,11 @@ export function validateManifest(value) {
   const required = copyPathArray(value.required, 'required');
 
   for (const requiredPath of required) {
-    if (exclude.some((prefix) => matchesPathPrefix(requiredPath, prefix))) {
+    if (
+      [...MANDATORY_EXCLUDE_PREFIXES, ...exclude].some((prefix) =>
+        matchesPathPrefix(requiredPath, prefix),
+      )
+    ) {
       throw new UsageError(`Manifest required path is excluded: ${requiredPath}`);
     }
   }

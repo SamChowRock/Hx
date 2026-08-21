@@ -8,3 +8,12 @@ updates:
     groups:
       development-dependencies:
         dependency-type: development
+  - package-ecosystem: npm
+    directory: /packages/create-hx
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      create-hx-dependencies:
+        patterns:
+          - '*'

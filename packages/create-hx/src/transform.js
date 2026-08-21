@@ -1,8 +1,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const START = /^# hx-template:exclude-start ([a-z0-9-]+)$/;
-const END = /^# hx-template:exclude-end ([a-z0-9-]+)$/;
+const START = /^[ \t]*# hx-template:exclude-start ([a-z0-9-]+)$/;
+const END = /^[ \t]*# hx-template:exclude-end ([a-z0-9-]+)$/;
 const PROJECT_NAME_TOKEN = '{{PROJECT_NAME}}';
 
 function resolveWithin(stagingPath, repositoryPath) {

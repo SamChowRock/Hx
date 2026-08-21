@@ -42,6 +42,10 @@ test('matches exact path-prefix boundaries', () => {
   assert.equal(matchesPathPrefix('docs-old/guide.md', 'docs'), false);
   assert.equal(isExcludedPath('packages/create-hx/src/cli.js', manifest), true);
   assert.equal(isExcludedPath('packages/create-hx-old/src/cli.js', manifest), false);
+
+  const incompleteManifest = validateManifest({ ...validManifest, exclude: [] });
+  assert.equal(isExcludedPath('.hx-template/README.md', incompleteManifest), true);
+  assert.equal(isExcludedPath('packages/create-hx/src/cli.js', incompleteManifest), true);
 });
 
 test('rejects unsupported and unknown fields', () => {
@@ -63,6 +67,10 @@ test('rejects unsafe, duplicate, and contradictory paths', () => {
   );
   assert.throws(
     () => validateManifest({ ...validManifest, required: ['docs/guide.md'] }),
+    /required path is excluded/,
+  );
+  assert.throws(
+    () => validateManifest({ ...validManifest, exclude: [], required: ['packages/create-hx/bin'] }),
     /required path is excluded/,
   );
   assert.throws(

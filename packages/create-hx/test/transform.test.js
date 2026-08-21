@@ -22,6 +22,19 @@ test('removes one declared source-only block and its markers', () => {
   assert.equal(stripNamedBlocks(input, ['tutorial']), 'before\nafter\n');
 });
 
+test('recognizes source-only markers indented by YAML formatting', () => {
+  const input = [
+    'steps:',
+    '  # hx-template:exclude-start tutorial',
+    '  - run: pnpm tutorial:check',
+    '  # hx-template:exclude-end tutorial',
+    '  - run: pnpm test',
+    '',
+  ].join('\n');
+
+  assert.equal(stripNamedBlocks(input, ['tutorial']), 'steps:\n  - run: pnpm test\n');
+});
+
 test('rejects malformed or missing source-only blocks', () => {
   assert.throws(
     () => stripNamedBlocks('# hx-template:exclude-start tutorial\n', ['tutorial']),
