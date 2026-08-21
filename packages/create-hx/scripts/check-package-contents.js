@@ -20,7 +20,10 @@ const requiredFiles = Object.freeze([
   'src/manifest.js',
   'src/scaffold.js',
   'src/target.js',
+  'src/template-state.js',
   'src/transform.js',
+  'src/update-plan.js',
+  'src/update-target.js',
 ]);
 
 export function checkPackageContents(files) {

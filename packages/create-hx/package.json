@@ -1,10 +1,10 @@
 {
   "name": "create-hx",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Create a production-oriented Hx NestJS project",
   "type": "module",
   "bin": {
-    "create-hx": "./bin/create-hx.js"
+    "create-hx": "bin/create-hx.js"
   },
   "files": [
     "bin",

@@ -621,7 +621,7 @@ test('executable exposes help and version and rejects --force', async () => {
 
   const version = await spawnCli(['--version']);
   assert.equal(version.code, 0);
-  assert.equal(version.stdout, '0.1.0\n');
+  assert.equal(version.stdout, '0.2.0\n');
 
   const force = await spawnCli(['--force']);
   assert.equal(force.code, 1);

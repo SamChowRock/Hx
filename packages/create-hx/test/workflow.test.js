@@ -16,4 +16,10 @@ test('publish workflow enforces trusted-publishing prerequisites without a token
   assert.match(workflow, /minor === 5 && patch < 1/);
   assert.doesNotMatch(workflow, /NODE_AUTH_TOKEN|--provenance/);
   assert.match(workflow, /id-token: write/);
+  assert.match(workflow, /create-hx-v\$\{PACKAGE_VERSION\}/);
+
+  const packageJson = JSON.parse(
+    await readFile(path.join(repositoryPath, 'packages/create-hx/package.json'), 'utf8'),
+  );
+  assert.equal(packageJson.version, '0.2.0');
 });
